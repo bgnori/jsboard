@@ -1,6 +1,6 @@
 /* 
   This script requires jQuery 1.3.2   
-  Copyright 2009 Noriyuki Hosaka nori@backgammon.gr.jp
+  Copyright 2009 Noriyuki Hosaka bgnori@gmail.com
 */
 
 /* 
