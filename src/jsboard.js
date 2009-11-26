@@ -29,6 +29,10 @@ function Area(map, id, shape, coords, alt){
              + '" nohref="nohref" />'));
 };
 
+function Pre(r, text){
+  r.append($('<pre>' + text + '</pre>'));
+};
+
 function DebugDump(r, id){
   debug_textarea = '<form><textarea cols="60" rows="5">debugger\n</textarea></form>';
   r.append(debug_textarea);
@@ -77,7 +81,12 @@ function Editor(n){
 
   root = $(this);
 
-  Image(root, GnubgIDFinder(root), 252, 341, 'nature', '#'+id_str);
+  gnubgid = GnubgIDFinder(root);
+  text = root.text()
+
+  root.empty(); //clean
+
+  Image(root, gnubgid, 252, 341, 'nature', '#'+id_str);
 
   root.append($('<map name="' + id_str + '" id="'+ id_str + '" />'));
   map = $('#' + id_str);
@@ -85,6 +94,8 @@ function Editor(n){
   Area(map, "13pt", "rect", "25,5,43,93", "13pt");
   Area(map, "7pt", "rect", "115,139,133,227", "7pt");
   Area(map, "yourbar", "rect", "133,116,158,228", "yourbar");
+
+  Pre(root, text);
 
   DebugDump(root, id_str);
 
