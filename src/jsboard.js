@@ -4,9 +4,21 @@
 */
 
 
+function ImageURL(gnubgid, height, width, css){
+  return 'http://image.backgammonbase.com/image?' + 
+    'gnubgid=' +  encodeURIComponent(gnubgid) + 
+    '&height='+height +
+    '&width='+width + 
+    '&css='+ css +
+    '&format=png';
+};
+
 
 function Image(r, gnubgid, height, width, css, usemap){
-  r.append('<img src="http://image.backgammonbase.com/image?gnubgid=4PPgAQPgc%2BQBIg%3AcAl7AAAAAAAA&height=262&width=341&css=nature&format=png" alt=gnubgid usemap="'+usemap+'" width="341" height="262" />');
+  r.append($('<img src="'+ImageURL(gnubgid, height, width, css) 
+           +'" alt=gnubgid usemap="'+ usemap 
+           +'" width="' + width 
+           + '" height="' + height + '" />'));
 };
 
 function Area(map, id, shape, coords, alt){
@@ -31,12 +43,41 @@ function DebugDump(r, id){
     })
 };
 
+rPositionID = new RegExp("Position ID: ([A-Za-z0-9/+]{14})")
+rMatchID = new RegExp("Match ID: ([A-Za-z0-9/+]{12})")
+rGnubgID = new RegExp("[A-Za-z0-9/+]{14}:[A-Za-z0-9/+]{12}")
+
+function GnubgIDFinder(){
+  text = root.text();
+  if (text) {
+    try{
+      pos = text.match(rPositionID)[1];
+      match = text.match(rMatchID)[1];
+      if ( pos && match ){
+        return pos + ':' + match;
+      };
+    }catch(e){
+      //surpress error try other.
+    };
+    try{
+      gnubgid = text.match(rGnubgID);
+      if (gnubgid){
+        return gnubgid;
+      }
+    }catch(e){
+      //surpress error and use default value
+    };
+  }
+  return '4HPwATDgc/ABMA:cAkAAAAAAAAA';
+  //return '4PPgAQPgc+QBIg:cAl7AAAAAAAA';
+};
+
 function Editor(n){
   id_str =  'jsboard'+n;
 
   root = $(this);
 
-  Image(root, 'gnubgid', 341, 252, 'css', '#'+id_str);
+  Image(root, GnubgIDFinder(root), 252, 341, 'nature', '#'+id_str);
 
   root.append($('<map name="' + id_str + '" id="'+ id_str + '" />'));
   map = $('#' + id_str);
