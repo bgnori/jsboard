@@ -29,6 +29,10 @@ function Area(map, id, shape, coords, alt){
              + '" nohref="nohref" />'));
 };
 
+function MoveDiv(r, t){
+  r.append($('<div>' + t + '</div>'));
+};
+
 function Pre(r, text){
   r.append($('<pre>' + text + '</pre>'));
 };
@@ -51,8 +55,7 @@ rPositionID = new RegExp("Position ID: ([A-Za-z0-9/+]{14})")
 rMatchID = new RegExp("Match ID: ([A-Za-z0-9/+]{12})")
 rGnubgID = new RegExp("[A-Za-z0-9/+]{14}:[A-Za-z0-9/+]{12}")
 
-function GnubgIDFinder(){
-  text = root.text();
+function GnubgIDFinder(text){
   if (text) {
     try{
       pos = text.match(rPositionID)[1];
@@ -76,13 +79,59 @@ function GnubgIDFinder(){
   //return '4PPgAQPgc+QBIg:cAl7AAAAAAAA';
 };
 
+CR = "\n";
+LF = "\r";
+CRLF = "\r\n";
+Line = '(?:' + CRLF + '|' + CR + '|' + LF + ')';
+floatPattern = "(?:\\+?-?[0-9]+\\.[0-9]+)";
+floatRegExp = new RegExp(floatPattern, 'g');
+movePlacePattern = "(?:[0-9]+\\. )";
+movePlaceRegExp = new RegExp(movePlacePattern, 'g');
+evalTypePattern = "(?:(?:Cubeful [01234]-ply)|(?:Rollout))";
+evalTypeRegExp = new RegExp(evalTypePattern, 'g');
+pointPattern = "(?:(?:bar)|(?:[12][0-9]|[0-9])|(?:off))";
+pointRegExp = new RegExp(pointPattern, 'g');
+movePattern = "(?:" + pointPattern + "/(?:" + pointPattern + "\\*?)+(?:\\([1-4]\\))?)";
+moveRegexp = new RegExp(movePattern, 'g');
+equityPattern = "Eq.: +"+floatPattern + "(?: \\( "+ floatPattern + "\\))?";
+equityRegexp = new RegExp(equityPattern, 'g');
+
+MoveHeaderPattern = "(?: ){4}" + movePlacePattern + " *" + evalTypePattern + " *(:?" + movePattern + " ?)+ *" + equityPattern;
+MoveHeaderRegExp = new RegExp(MoveHeaderPattern,'g');
+MoveDataPattern = "(?: ){5,}.*";
+MoveDataRegExp = new RegExp(MoveDataPattern);
+
+MoveListingPattern = MoveHeaderPattern + Line + '(:?' + MoveDataPattern + Line + ')*';
+MoveListingRegExp = new RegExp(MoveListingPattern, 'g');
+
+function MoveFinder(text){
+  //xs = text.match(floatRegExp);
+  //xs = text.match(movePlaceRegExp);
+  //xs = text.match(evalTypeRegExp);
+  //xs = text.match(pointRegExp);
+  //xs = text.match(moveRegexp);
+  //xs = text.match(equityRegexp);
+
+  //xs = text.match(MoveHeaderRegExp);
+  return text.match(MoveListingRegExp);
+};
+
+function MoveList(r, mv, odd){
+  if (odd){
+    r.append($('<div style="background-color:blue"><pre>' + mv + '</pre></div>'));
+  }else{
+    r.append($('<div style="background-color:red"><pre>' + mv + '</pre></div>'));
+  };
+};
+
 function Editor(n){
   id_str =  'jsboard'+n;
 
   root = $(this);
 
-  gnubgid = GnubgIDFinder(root);
-  text = root.text()
+  text = root.text();
+  gnubgid = GnubgIDFinder(text);
+  mvlist = MoveFinder(text);
 
   root.empty(); //clean
 
@@ -95,10 +144,12 @@ function Editor(n){
   Area(map, "7pt", "rect", "115,139,133,227", "7pt");
   Area(map, "yourbar", "rect", "133,116,158,228", "yourbar");
 
-  Pre(root, text);
+  for (n in  mvlist){
+    mv = mvlist[n];
+    MoveList(root, mv, n%2);
+  };
 
-  DebugDump(root, id_str);
-
+  //DebugDump(root, mv);
 }
 
 $(document).ready(function(){
