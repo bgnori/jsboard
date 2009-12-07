@@ -5,7 +5,7 @@ sessionを使わずにcontextを持つ。
 具体的にはgnubg idかxg idをかならず渡す。
 
 i.e. 
-move("jHPDAQXgPHgBWA:UQkyAQAAAAAA", "b/21 24/20 8/4 8/4")
+move("jHPDAQXgPHgBWA:UQkyAQAAAAAA", "bar/21 24/20 8/4 8/4")
 を渡すと
 
 "jHPDAQXgPHgBWA:UQkyAQAAAAAA"がかえってくるなど
@@ -101,6 +101,18 @@ Parts化する. (とりあえず、position viewerはここまで)
 
 今日はテストの整理。
 mockサーバづくり
+
+
+jsonp hello world with jQueryができた。
+
+決めなければいけないこと:
+- 標準ではcallbackになっているパラメータ名を決める。 //事実上の関数呼び出し名。...mangleしてくれるライブラリが欲しくなる病
+- 引数を決める。
+- エラー処理について決める。
+
+仕様に沿ったmock（一部のパラメータのみに正しく反応するサーバ)を用意する。
+
+
 
 
 

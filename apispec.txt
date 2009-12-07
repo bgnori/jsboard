@@ -1,0 +1,43 @@
+
+- How to envoke via JSONP
+  use "make_move" for callback.
+  i.e. in jQuery,
+  $.ajax({
+    url : "http://api.backgammonbase.com/jsonp",
+    dataType : "jsonp",
+    cache : true,
+    jsonp : "make_move",
+    ... snip ...
+  });
+
+  other parameters:
+  -- gnubgid
+    give Poisition ID + Match ID, i.e.
+    example: "jHPDAQXgPHgBWA:UQkyAQAAAAAA"
+
+  -- move text
+    give moves in text. 
+    example: "bar/21 24/20 8/4 8/4"
+    use "bar" for bar, not "25" or "b"
+    use "off" for off. not "0" or "o"
+
+- return values
+
+example:
+
+giving parameters
+{
+    gnubgid: "jHPDAQXgPHgBWA:UQkyAQAAAAAA", 
+    move: "bar/21 24/20 8/4 8/4"
+}
+
+gets
+{
+    status: true,
+    gnubgid: "jHPDAQXgPHgBWA:UQkyAQAAAAAA"
+}
+
+
+error handlings are T.B.D.
+
+
