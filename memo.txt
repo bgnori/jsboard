@@ -1,0 +1,103 @@
+ajaxな(正確にはjsonpな)backgammon board manipuration API
+
+concept:
+sessionを使わずにcontextを持つ。
+具体的にはgnubg idかxg idをかならず渡す。
+
+i.e. 
+move("jHPDAQXgPHgBWA:UQkyAQAAAAAA", "b/21 24/20 8/4 8/4")
+を渡すと
+
+"jHPDAQXgPHgBWA:UQkyAQAAAAAA"がかえってくるなど
+
+
+a) clickable map(http://w3g.jp/xhtml/dic/map)でeventを発生させる機能を作るためのAPI
+b) ゲームのアクションを実装する上で必要な機能を提供するAPI
+c) positionを編集する上で必要な機能を提供するAPI
+
+
+留意:
+1) データベースサービスをしたいならこれとは別にデータベースサーバを作る必要がある。
+2) ゲームサービスをしたいならこれとは別にゲームサーバを作る必要がある。
+- 待合室
+- 対戦室
+
+
+a) clickable map(http://w3g.jp/xhtml/dic/map)でeventを発生させる機能を作るためのAPI
+画像とそれの上での各point/checkquer/cubeの座標が必要
+
+<img src="イメージファイルのURI" alt="代替テキスト"
+usemap="#マップ名称" width="横幅" height="高さ">
+<map name="マップ名称">
+<area shape="rect" coords="20,20,60,70"
+href="リンク先のURI" alt="代替テキスト">
+<area shape="circle" coords="90,30,20"
+href="リンク先のURI" alt="代替テキスト">
+<area shape="poly" coords="120,30,140,80,160,30,140,40"
+href="リンク先のURI" alt="代替テキスト">
+</map>
+とかになる。
+なので、jsでcoordsとurlを生成してあげないといけない。
+またユーザの入力後はこの部分全てがさしかわる。
+
+downとupを拾うようにするとdragできるように作ることができる。
+moveのための文字列を生成するのはjsの仕事。基本的にはfrom/toの
+文字をcatすればよいはず。
+右クリックはすきなようにすればいい。
+
+
+scriptaculousでのdrag
+http://gihyo.jp/dev/feature/01/scriptaculous/0012?page=1
+
+なんとなく掴めた。
+-> sample/main.html
+
+mapもしくはmapをいれたいdiv要素に対して関数を呼ぶ形式にする。
+DOMで書き換えてmapを用意する。
+
+- htmlを送りつける
+- jsonpを送りつける
+
+
+API仮決
+High Level
+ width, height, css, format, debug
+ name..はたぶん不要。globalで同じ名前はあってもいいが、map下でuniqueならよいはず。
+ namespace問題
+
+static
+backgammonbase.jsboard.positionviewer() // positionの表示
+backgammonbase.jsboard.gameviewer() // gameを鑑賞
+
+dynamic
+backgammonbase.jsboard.editor() // positionの作成
+backgammonbase.jsboard.player() // gameをプレー
+backgammonbase.jsboard.explorer() // databaseを使うためのツール。
+
+Low Level
+
+orientation API... sends back coords of items on board
+http://image.backgammonbase.com/image?gnubgid=4PPgAQPgc%2BQBIg%3AcAl7AAAAAAAA&height=262&width=341&css=nature&format=jsonp
+
+
+jQuery
+appendはthisを返す。
+
+mat形式のfileの中身を貼り付けるとviewerが動くようにする。
+
+
+defaultのsizeをどうするのか？
+できればサーバと通信して決めるのがよいが、常識的に考えて400x300とかだろう。
+
+とりあえずdivをムーブごとに生成できるようにした。
+To Do:
+ムーブごとにデータを付けてhover時に絵を差し替える。
+
+Parts化する. (とりあえず、position viewerはここまで)
+
+次はmatのparseか
+
+
+
+
+
