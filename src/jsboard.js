@@ -109,24 +109,16 @@ MoveListingPattern = MoveHeaderPattern + Line + '(:?' + MoveDataPattern + Line +
 MoveListingRegExp = new RegExp(MoveListingPattern, 'g');
 
 function MoveFinder(text){
-  //xs = text.match(floatRegExp);
-  //xs = text.match(movePlaceRegExp);
-  //xs = text.match(evalTypeRegExp);
-  //xs = text.match(pointRegExp);
-  //xs = text.match(moveRegexp);
-  //xs = text.match(equityRegexp);
-
-  //xs = text.match(MoveHeaderRegExp);
   return text.match(MoveListingRegExp);
 };
 
 function MoveList(r, mv, odd){
   var m = mv.match(moveRegexp);
   if (odd){
-    r.append($('<div style="background-color:blue" alt="' + m
+    r.append($('<div class="movelist-odd-row" alt="' + m
                 + '"><pre>' + mv + '</pre></div>'));
   }else{
-    r.append($('<div style="background-color:red" alt="' + m
+    r.append($('<div class="movelist-even-row" alt="' + m
                 + '"><pre>' + mv + '</pre></div>'));
   };
 
@@ -149,16 +141,20 @@ function MoveList(r, mv, odd){
       var a = r.find('[alt="' + m + '"]');
       a.hover(
         function over(){
-          a = r.find('[alt="' + m + '"]'); 
-          img.attr('src', 
-                    ImageURL(data.gnubgid, h, w, 'nature'));
-          //img.attr('alt' , data.gnubgid);
+          if (odd){
+            a.attr('class', 'movelist-odd-row-hover');
+          }else{
+            a.attr('class', 'movelist-even-row-hover');
+          }
+          img.attr('src', ImageURL(data.gnubgid, h, w, 'nature'));
         },
         function out(){
-          a = r.find('[alt="' + m + '"]'); 
-          img.attr('src', 
-                    ImageURL(alt, h, w, 'nature'));
-          //img.attr('alt' , alt);
+          if (odd){
+            a.attr('class', 'movelist-odd-row');
+          }else{
+            a.attr('class', 'movelist-even-row');
+          }
+          img.attr('src', ImageURL(alt, h, w, 'nature'));
         });
       },
     error : function(){

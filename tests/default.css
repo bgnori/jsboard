@@ -1,0 +1,21 @@
+
+
+
+.movelist-odd-row {
+  background: #e8edff;
+}
+
+.movelist-even-row {
+  background: #eff2ff;
+}
+
+.movelist-odd-row-hover {
+  color: red;
+  background: #e8edff;
+}
+
+.movelist-even-row-hover {
+  color: red;
+  background: #eff2ff;
+}
+
