@@ -1,5 +1,7 @@
 
 
+.jsboard {
+}
 
 .movelist-odd-row {
   background: #e8edff;
@@ -18,4 +20,11 @@
   color: red;
   background: #eff2ff;
 }
+
+
+.jsboard-image {
+  width: 400;
+  height: 300;
+}
+
 

@@ -13,13 +13,17 @@ function ImageURL(gnubgid, height, width, css){
     '&format=png';
 };
 
+function Image(p, gnubgid, css, usemap){
+  var img;
+  img = p.find('[class="jsboard-image"]');
+  if (img.length == 0){
+    p.append($('<img class="jsboard-image" />'));
+    img = p.find('[class="jsboard-image"]');
+  }
 
-function Image(p, gnubgid, height, width, css, usemap){
-  p.append($('<img src="'+ImageURL(gnubgid, height, width, css) 
-           +'" alt="' + gnubgid 
-           +'"usemap="'+ usemap 
-           +'" width="' + width 
-           + '" height="' + height + '" />'));
+  img.attr("usemap", usemap);
+  img.attr("alt", gnubgid);
+  img.attr("src", ImageURL(gnubgid, img.attr("height"), img.attr("width"), css));
 };
 
 function Area(map, id, shape, coords, alt){
@@ -174,7 +178,7 @@ function Editor(n){
 
   root.empty(); //clean
 
-  Image(root, gnubgid, 252, 341, 'nature', '#'+id_str);
+  Image(root, gnubgid, 'nature', '#'+id_str);
 
   root.append($('<map name="' + id_str + '" id="'+ id_str + '" />'));
   var map = $('#' + id_str);
