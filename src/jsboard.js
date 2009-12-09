@@ -121,8 +121,25 @@ function MoveFinder(text){
 };
 
 function MoveList(r, mv, odd){
-  function handlerbuilder(r, m){
-    return function(data, dataType){
+  var m = mv.match(moveRegexp);
+  if (odd){
+    r.append($('<div style="background-color:blue" alt="' + m
+                + '"><pre>' + mv + '</pre></div>'));
+  }else{
+    r.append($('<div style="background-color:red" alt="' + m
+                + '"><pre>' + mv + '</pre></div>'));
+  };
+
+  var img = r.find("img");
+  var href = img.attr('href');
+  var alt = img.attr('alt');
+
+  $.ajax({
+    url:"http://localhost:8000/",
+    dataType : "jsonp",
+    cache : false,
+    data : {move : m, gnubgid : alt},
+    success : function (data, dataType){
       var img = r.find('img')
       var href = img.attr('href');
       var alt = img.attr('alt');
@@ -143,28 +160,7 @@ function MoveList(r, mv, odd){
                     ImageURL(alt, h, w, 'nature'));
           //img.attr('alt' , alt);
         });
-      };
-    };
-  
-  var m = mv.match(moveRegexp);
-  if (odd){
-    r.append($('<div style="background-color:blue" alt="' + m
-                + '"><pre>' + mv + '</pre></div>'));
-  }else{
-    r.append($('<div style="background-color:red" alt="' + m
-                + '"><pre>' + mv + '</pre></div>'));
-  };
-
-  var img = r.find("img");
-  var href = img.attr('href');
-  var alt = img.attr('alt');
-
-  $.ajax({
-    url:"http://localhost:8000/",
-    dataType : "jsonp",
-    cache : false,
-    data : {move : m, gnubgid : alt},
-    success : handlerbuilder(r, m),
+      },
     error : function(){
       alert("error");
     }
