@@ -38,6 +38,6 @@ gets
 }
 
 
-error handlings are T.B.D.
+error handling is T.B.D.
 
 
