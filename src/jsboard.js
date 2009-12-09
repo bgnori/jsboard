@@ -14,9 +14,10 @@ function ImageURL(gnubgid, height, width, css){
 };
 
 
-function Image(r, gnubgid, height, width, css, usemap){
-  r.append($('<img src="'+ImageURL(gnubgid, height, width, css) 
-           +'" alt=gnubgid usemap="'+ usemap 
+function Image(p, gnubgid, height, width, css, usemap){
+  p.append($('<img src="'+ImageURL(gnubgid, height, width, css) 
+           +'" alt="' + gnubgid 
+           +'"usemap="'+ usemap 
            +'" width="' + width 
            + '" height="' + height + '" />'));
 };
@@ -38,7 +39,7 @@ function Pre(r, text){
 };
 
 function DebugDump(r, id){
-  debug_textarea = '<form><textarea cols="60" rows="5">debugger\n</textarea></form>';
+  var debug_textarea = '<form><textarea cols="60" rows="5">debugger\n</textarea></form>';
   r.append(debug_textarea);
 
   r.find('#' +id +' a').mousedown(function(){
@@ -56,6 +57,9 @@ rMatchID = new RegExp("Match ID: ([A-Za-z0-9/+]{12})")
 rGnubgID = new RegExp("[A-Za-z0-9/+]{14}:[A-Za-z0-9/+]{12}")
 
 function GnubgIDFinder(text){
+  var pos;
+  var match;
+  var e;
   if (text) {
     try{
       pos = text.match(rPositionID)[1];
@@ -91,12 +95,12 @@ evalTypePattern = "(?:(?:Cubeful [01234]-ply)|(?:Rollout))";
 evalTypeRegExp = new RegExp(evalTypePattern, 'g');
 pointPattern = "(?:(?:bar)|(?:[12][0-9]|[0-9])|(?:off))";
 pointRegExp = new RegExp(pointPattern, 'g');
-movePattern = "(?:" + pointPattern + "/(?:" + pointPattern + "\\*?)+(?:\\([1-4]\\))?)";
+movePattern = "(?:(?:" + pointPattern + "/(?:" + pointPattern + "\\*?)+(?:\\([1-4]\\))?) ?)+";
 moveRegexp = new RegExp(movePattern, 'g');
 equityPattern = "Eq.: +"+floatPattern + "(?: \\( "+ floatPattern + "\\))?";
 equityRegexp = new RegExp(equityPattern, 'g');
 
-MoveHeaderPattern = "(?: ){4}" + movePlacePattern + " *" + evalTypePattern + " *(:?" + movePattern + " ?)+ *" + equityPattern;
+MoveHeaderPattern = "(?: ){4}" + movePlacePattern + " *" + evalTypePattern + " *" + movePattern + " *" + equityPattern;
 MoveHeaderRegExp = new RegExp(MoveHeaderPattern,'g');
 MoveDataPattern = "(?: ){5,}.*";
 MoveDataRegExp = new RegExp(MoveDataPattern);
@@ -117,33 +121,78 @@ function MoveFinder(text){
 };
 
 function MoveList(r, mv, odd){
+  function handlerbuilder(r, m){
+    return function(data, dataType){
+      var img = r.find('img')
+      var href = img.attr('href');
+      var alt = img.attr('alt');
+      var w = img.attr('width');
+      var h = img.attr('height');
+
+      var a = r.find('[alt="' + m + '"]');
+      a.hover(
+        function over(){
+          a = r.find('[alt="' + m + '"]'); 
+          img.attr('src', 
+                    ImageURL(data.gnubgid, h, w, 'nature'));
+          //img.attr('alt' , data.gnubgid);
+        },
+        function out(){
+          a = r.find('[alt="' + m + '"]'); 
+          img.attr('src', 
+                    ImageURL(alt, h, w, 'nature'));
+          //img.attr('alt' , alt);
+        });
+      };
+    };
+  
+  var m = mv.match(moveRegexp);
   if (odd){
-    r.append($('<div style="background-color:blue"><pre>' + mv + '</pre></div>'));
+    r.append($('<div style="background-color:blue" alt="' + m
+                + '"><pre>' + mv + '</pre></div>'));
   }else{
-    r.append($('<div style="background-color:red"><pre>' + mv + '</pre></div>'));
+    r.append($('<div style="background-color:red" alt="' + m
+                + '"><pre>' + mv + '</pre></div>'));
   };
+
+  var img = r.find("img");
+  var href = img.attr('href');
+  var alt = img.attr('alt');
+
+  $.ajax({
+    url:"http://localhost:8000/",
+    dataType : "jsonp",
+    cache : false,
+    data : {move : m, gnubgid : alt},
+    success : handlerbuilder(r, m),
+    error : function(){
+      alert("error");
+    }
+  });
 };
 
 function Editor(n){
-  id_str =  'jsboard'+n;
+  var id_str =  'jsboard'+n;
 
-  root = $(this);
+  var root = $(this);
 
-  text = root.text();
-  gnubgid = GnubgIDFinder(text);
-  mvlist = MoveFinder(text);
+  var text = root.text();
+  var gnubgid = GnubgIDFinder(text);
+  var mvlist = MoveFinder(text);
 
   root.empty(); //clean
 
   Image(root, gnubgid, 252, 341, 'nature', '#'+id_str);
 
   root.append($('<map name="' + id_str + '" id="'+ id_str + '" />'));
-  map = $('#' + id_str);
+  var map = $('#' + id_str);
   //alert(map.attr('id')); -> ok
   Area(map, "13pt", "rect", "25,5,43,93", "13pt");
   Area(map, "7pt", "rect", "115,139,133,227", "7pt");
   Area(map, "yourbar", "rect", "133,116,158,228", "yourbar");
 
+
+  var mv;
   for (n in  mvlist){
     mv = mvlist[n];
     MoveList(root, mv, n%2);
