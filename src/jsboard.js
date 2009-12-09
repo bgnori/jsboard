@@ -19,6 +19,10 @@ function Image(p, gnubgid, css, usemap){
   if (img.length == 0){
     p.append($('<img class="jsboard-image" />'));
     img = p.find('[class="jsboard-image"]');
+  }else{
+    if(img.length != 1){
+      alert('ugh!!!');
+    }
   }
 
   img.attr("usemap", usemap);
