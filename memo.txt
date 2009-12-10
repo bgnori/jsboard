@@ -127,11 +127,84 @@ PartialMoveをMoveFactoryにくわせればよい(append)？
 PartialMoveを作って食わせればいい。
 
 
+とりあえずは動いたが・・・。
+encodeされて帰ってくるidが短い。
+
+-> encoderがバグっている。
+
+got: ZwAAwGwAAAAAAA:cIkkAAAAAAAA 3/off 1/off 
+ZwAAwGwAAAAAAA cIkkAAAAAAAA
+3/off
+1/off
+
+Traceback (most recent call last):
+  File "/usr/lib/python2.4/site-packages/wsgiref/handlers.py", line 92, in run
+    self.result = application(self.environ, self.start_response)
+  File "server.py", line 63, in my_app
+    assert len(p) == 14
+AssertionError
+shinano.tonic-water.com - - [10/Dec/2009 14:50:00] "GET /?callback=jsonp1260424200673&_=1260424200947&move=3%2Foff+1%2Foff+&gnubgid=ZwAAwGwAAAAAAA%3AcIkkAAAAAAAA HTTP/1.1" 500 59
+got: ZwAAwGwAAAAAAA:cIkkAAAAAAAA 4/2 1/off(2) 
+ZwAAwGwAAAAAAA cIkkAAAAAAAA
+4/2
+1/off(2)
+
+Traceback (most recent call last):
+  File "/usr/lib/python2.4/site-packages/wsgiref/handlers.py", line 92, in run
+    self.result = application(self.environ, self.start_response)
+  File "server.py", line 63, in my_app
+    assert len(p) == 14
+AssertionError
+shinano.tonic-water.com - - [10/Dec/2009 14:50:00] "GET /?callback=jsonp1260424200674&_=1260424200952&move=4%2F2+1%2Foff(2)+&gnubgid=ZwAAwGwAAAAAAA%3AcIkkAAAAAAAA HTTP/1.1" 500 59
+
+--> fixed.
 
 
 
+moveがせいせいできていない。
+
+got: sGfwgAPbuIEDIA:cIkqAAAAAAAA 24/22 13/9 
+sGfwgAPbuIEDIA cIkqAAAAAAAA
+24/22
+13/9
+Traceback (most recent call last):
+  File "/usr/lib/python2.4/site-packages/wsgiref/handlers.py", line 92, in run
+    self.result = application(self.environ, self.start_response)
+  File "server.py", line 55, in my_app
+    assert found
+AssertionError
+shinano.tonic-water.com - - [10/Dec/2009 14:50:00] "GET /?callback=jsonp1260424200641&_=1260424200692&move=24%2F22+13%2F9+&gnubgid=sGfwgAPbuIEDIA%3AcIkqAAAAAAAA HTTP/1.1" 500 59
 
 
+got: sGfwgAPbuIEDIA:cIkqAAAAAAAA 8/4 6/4 
+sGfwgAPbuIEDIA cIkqAAAAAAAA
+8/4
+Traceback (most recent call last):
+  File "/usr/lib/python2.4/site-packages/wsgiref/handlers.py", line 92, in run
+    self.result = application(self.environ, self.start_response)
+  File "server.py", line 55, in my_app
+    assert found
+AssertionError
+shinano.tonic-water.com - - [10/Dec/2009 14:50:00] "GET /?callback=jsonp1260424200642&_=1260424200704&move=8%2F4+6%2F4+&gnubgid=sGfwgAPbuIEDIA%3AcIkqAAAAAAAA HTTP/1.1" 500 59
+
+
+
+got: mOfgASTYzsEAJg:cIkkAAAAAAAA 8/6 8/7(2) 
+mOfgASTYzsEAJg cIkkAAAAAAAA
+8/6
+8/7(2)
+Traceback (most recent call last):
+  File "/usr/lib/python2.4/site-packages/wsgiref/handlers.py", line 92, in run
+    self.result = application(self.environ, self.start_response)
+  File "server.py", line 55, in my_app
+    assert found
+AssertionError
+shinano.tonic-water.com - - [10/Dec/2009 14:50:00] "GET /?callback=jsonp1260424200669&_=1260424200918&move=8%2F6+8%2F7(2)+&gnubgid=mOfgASTYzsEAJg%3AcIkkAAAAAAAA HTTP/1.1" 500 59
+
+
+addmoveしてしまうとdiceがすべて使われてしまう。
+pmsが返すmoveをaddしたときにconsumeするdieが変？
+再帰からもどったときに状態がrewindされていなかった。
 
 
 
