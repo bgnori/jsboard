@@ -102,15 +102,35 @@ Parts化する. (とりあえず、position viewerはここまで)
 今日はテストの整理。
 mockサーバづくり
 
-
-jsonp hello world with jQueryができた。
-
+jsonp hello world with jQueryができた。 
 決めなければいけないこと:
 - 標準ではcallbackになっているパラメータ名を決める。 //事実上の関数呼び出し名。...mangleしてくれるライブラリが欲しくなる病
 - 引数を決める。
 - エラー処理について決める。
 
 仕様に沿ったmock（一部のパラメータのみに正しく反応するサーバ)を用意する。
+
+
+cssからレイアウトをいじるようにした。AreaMapはまたあとであたえられたエリアから
+マップを生成する作業が必要。
+
+次はサーバ作り。
+
+bglibに該当機能が無かったっけ？
+bglib.guiかたどるか？
+bglib.modelのMoveFactoryあたり？
+
+PartialMoveをMoveFactoryにくわせればよい(append)？
+  def move_test(self):を見る限り、そのようだ。
+    mf = MoveFactory(b)
+としてboardからMoveFactoryをつくり、
+PartialMoveを作って食わせればいい。
+
+
+
+
+
+
 
 
 
