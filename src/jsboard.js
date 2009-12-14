@@ -135,7 +135,7 @@ function MoveList(r, mv, odd){
   var alt = img.attr('alt');
 
   $.ajax({
-    url:"http://localhost:8000/",
+    url: jsboard.config.move_api_url,
     dataType : "jsonp",
     cache : false,
     data : {move : m, gnubgid : alt},
@@ -154,7 +154,7 @@ function MoveList(r, mv, odd){
           }else{
             a.attr('class', 'movelist-even-row-hover');
           }
-          img.attr('src', ImageURL(data.gnubgid, h, w, 'nature'));
+          img.attr('src', ImageURL(data.gnubgid, h, w, jsboard.style));
         },
         function out(){
           if (odd){
@@ -162,7 +162,7 @@ function MoveList(r, mv, odd){
           }else{
             a.attr('class', 'movelist-even-row');
           }
-          img.attr('src', ImageURL(alt, h, w, 'nature'));
+          img.attr('src', ImageURL(alt, h, w, jsboard.style));
         });
       },
     error : function(){
@@ -182,7 +182,7 @@ function Editor(n){
 
   root.empty(); //clean
 
-  Image(root, gnubgid, 'nature', '#'+id_str);
+  Image(root, gnubgid, jsboard.style, '#'+id_str);
 
   root.append($('<map name="' + id_str + '" id="'+ id_str + '" />'));
   var map = $('#' + id_str);
@@ -198,7 +198,9 @@ function Editor(n){
     MoveList(root, mv, n%2);
   };
 
-  //DebugDump(root, mv);
+  if (jsboard.config.debug){
+    DebugDump(root, id_str);
+  }
 }
 
 $(document).ready(function(){
