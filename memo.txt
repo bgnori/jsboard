@@ -207,4 +207,78 @@ pmsが返すmoveをaddしたときにconsumeするdieが変？
 再帰からもどったときに状態がrewindされていなかった。
 
 
+ボードが白くかけてしまう現象
+- 原因がよくわからない。
+- キャッシュを消してreloadするとかわる。キャッシュもしくは画像生成系が原因だろう。
+ firefox側が原因？
+
+重傷では無いのでリリースする方向にいこう。
+
+
+どうdeployするか？
+
+いままで：
+imageserverというuserを作って実行。
+
+apacheのvhostで
+- backgammonbase.com
+- www.backgammonbase.comに
+- image.backgammonbase.com
+等に分配
+/etc/httpd/conf.d/vhosts/backgammonbase.com
+
+image.backgammonbase.comをport8001に飛ばしている。
+
+memcacheしている
+    <IfModule mod_cache.c>
+        <IfModule mod_cache.c>
+            CacheEnable mem /image
+            MCacheSize 300000
+#           KByte, 300MByte = 30KB x 10,000 entry
+            MCacheMaxObjectCount 12323
+            MCacheMaxObjectSize 30000
+#           Byte
+            MCacheRemovalAlgorithm LRU
+        </IfModule>
+
+port 8002をわりあてる？
+
+wsgiをどうするか？
+ a) wsgi ref
+ b) CherryPy
+ c) Django
+ d) Pylons
+ e) TurboGears
+ f) apache mod_wsgi
+ g) nginx + wsgi module
+どれでもいいのだが、シンプルな奴がいい。
+
+f)はセキュリティ上の理由から避けたい。
+g)は興味深いが、httpdがふたつ載ることになる。
+
+e)はすでにやったことがある。serviceがmonolithicになるのが気に入らない。
+a)は大丈夫なの？
+
+b), c), d)はわからないことが多い。
+
+面倒だからTGにするか?もしくは気楽に作るa)か.
+imageserverの名前が怪しくなるが、気にしないことにしよう。
+
+TGのインスタンスはimageと共有するか？
+リソースが無駄臭いが、入れ替えを考えると別にする
+api.backgammonbase.com
+move.api.backgammonbase.com
+onroll.api.backgammonbase.com
+edit.api.backgammonbase.com
+をとりあえず用意。
+
+
+package構成
+- end user document
+- api document
+- js code
+- server
+- css
+
+
 
