@@ -8,3 +8,5 @@ src/move.py
 src/__init__.py
 scripts/start-jsboard-move
 assets/default.css
+howtouse.txt
+apispec.txt

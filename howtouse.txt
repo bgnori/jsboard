@@ -1,0 +1,59 @@
+
+We provides
+
+http://move.api.backgammonbase.com/
+Server side service.
+
+http://assets.backgammonbase.com/jsboard.js
+Client side javascript to produce nice formatted board and move listings
+
+http://assets.backgammonbase.com/default.css
+Basic css for formatted board and move listing. You can create your own.
+
+To use this service as blog parts
+
+Sample:
+
+<html>
+<head>
+<title>move list parsing</sample>
+<!--
+  Copyright 2009 Noriyuki Hosaka bgnori@gmail.com
+  -->
+</head>
+<body>
+<!-- blog parts begin -->
+<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+<script>
+google.load("jquery", "1.3.2");
+jsboard = {
+  style: "nature",
+  config : {
+    move_api_url : "http://move.api.backgammonbase.com/",
+    debug: true,
+    },
+};
+</script>
+<script type="text/javascript" src="http://assets.backgammonbase.com/jsboard.js">
+</script>
+
+<link rel=stylesheet type="text/css" href="http://assets.backgammonbase.com/default.css" />
+<!-- blog parts end -->
+
+
+<div>Script understands Copy and Paste from gnubg
+<div class="jsboard">
+Position ID: sGfwgAPbOIMDIA
+Match ID: cAkxAAAAAAAA
+    1. Cubeful 2-ply    24/22 13/9                   Eq.:  -0.151
+       0.425 0.125 0.005 - 0.575 0.192 0.009
+        2-ply cubeful prune [world class]
+    2. Cubeful 2-ply    8/4 6/4                      Eq.:  -0.208 ( -0.057)
+       0.396 0.133 0.006 - 0.604 0.204 0.015
+        2-ply cubeful prune [world class]
+</div>
+</div>
+
+</body>
+</html>
+

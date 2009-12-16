@@ -41,8 +41,12 @@ setup(
               ],
   data_files=[('/var/www/backgammonbase.com/assets/', 
                   ['src/jsboard.js',
-                   'assets/default.css'])],
-  py_modules=[],
+                   'assets/default.css']),
+              ('/var/www/backgammonbase.com/doc/', 
+                  ['howtouse.txt',
+                   'apispec.txt',
+                  ]),
+              ],
   install_requires=[
       #FIXME! packages installed via RPM do not have egg.
       #"image-server >= 1.1.7", 

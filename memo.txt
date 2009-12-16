@@ -291,6 +291,7 @@ setup.pyを書く。
 
 boardのstyleがpage単位でしか指定できない。
 
-
+howtouse.txtを追加した。
+yamakaze/umikazeでテストか。
 
 
