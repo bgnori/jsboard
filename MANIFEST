@@ -1,0 +1,10 @@
+setup.cfg
+setup.py
+VERSION
+MANIFEST
+DESCRIPTION
+src/jsboard.js
+src/move.py
+src/__init__.py
+scripts/start-jsboard-move
+assets/default.css

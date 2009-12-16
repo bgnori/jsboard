@@ -1,0 +1,14 @@
+#!/usr/bin/python
+# -*- coding: us-ascii -*-
+# vim: syntax=python
+#
+# Copyright 2006-2008 Noriyuki Hosaka nori@backgammon.gr.jp
+#
+from wsgiref.simple_server import make_server, demo_app
+
+from jsboard.move import app
+
+
+httpd = make_server('', 8000, my_app);
+
+httpd.serve_forever();

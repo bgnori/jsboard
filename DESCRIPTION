@@ -1,0 +1,7 @@
+This package contains:
+ * server side
+  provides some ajax/jsonp service for client.
+
+ * client side
+  jsboard.js produces nice board figure from gnubgid
+

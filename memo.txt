@@ -280,5 +280,13 @@ package構成
 - server
 - css
 
+setup.pyを書く。
+
+/var/www/backgammonbase.com
+
+/var/www/backgammonbase.com/assets
+ jsboard.js
+ default.css
+
 
 
