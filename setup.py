@@ -33,7 +33,7 @@ setup(
   long_description=LONG_DESCRIPTION,
   author=AUTHOR[0],
   author_email=AUTHOR[1],
-  script =['script/start-jsboard-move',],
+  scripts=['scripts/start-jsboard-move',],
   package_dir = {
                  'jsboard':'src', #root
                  },
