@@ -59,6 +59,7 @@ setup(
     'python-bglib-library>= 0.0.9',
     'python-tonic-library>= 0.0.16',
     'python-simplejson>= 2.0.5',
+    'python-wsgiref>= 0.1.2',
   ],
   provides=['jsboard'],
   url=HOMEPAGE,
