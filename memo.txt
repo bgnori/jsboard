@@ -294,4 +294,60 @@ boardのstyleがpage単位でしか指定できない。
 howtouse.txtを追加した。
 yamakaze/umikazeでテストか。
 
+umikaze死亡。urakaze作成中
+
+
+
+対戦サーバ用のcometを使いたいのでその調査
+
+ゆうきひろしの記事
+http://itpro.nikkeibp.co.jp/article/COLUMN/20080220/294242/?ST=develop&P=1
+
+CometとAjaxを利用したチャットサーバの実装 
+http://codezine.jp/article/detail/733?p=1
+
+いまはない、Lingrの記事
+http://www.atmarkit.co.jp/fwcr/rensai/ajaxwatch12/01.html
+
+Python Comet Server
+http://stackoverflow.com/questions/960969/python-comet-server
+
+Python と Twisted できみにも書ける Web サーバ(1)
+http://lowlife.jp/yasusii/stories/24.html
+Twited Web + Nevowかな。
+
+http://japan.cnet.com/blog/kenn/2006/09/22/entry_lingr_and_comet/
+Lingr and Comet
+-----
+図のように、チャットルームに入ったところでまず全員observeがチャットサーバに対して張りっぱなしになり
+（どのチャットサーバにつながるかはロードバランサが動的に決定）、ルームのなかの誰かがsayすれば、
+それがウェブサーバ経由でチャットサーバクラスタにnotify（ブロードキャスト）され、
+そのチャットサーバクラスタのそれぞれにぶらさがっているクライアントにメッセージが配信され、
+すぐまたobserveを発行する、というサイクルを繰り返す仕組みになっています。
+-----
+
+cometd (revers proxy)
+http://www.cometd.org/
+ jQuery用のtoolkitがある。
+
+Nevow
+http://divmod.org/trac/wiki/DivmodNevow
+
+
+comet + JSONP
+http://d.hatena.ne.jp/shinichitomita/20070224/1172338685
+http://labs.cybozu.co.jp/blog/kazuho/archives/2007/02/keeping_comet_alive.php
+http://satoshi.blogs.com/life/2006/10/jsoncomet.html
+
+まずそうなところ; 回避策を考えたくないので、そのような状況を作らないようにする。
+- 動的JavaScriptロードの評価順序がブラウザによって違う
+- Keepalive with out pipe lining (最近はどうなんだろう？, 記事は2007年当時)
+ - pipeline sharing とかできないのかね？
+- 同時接続数制限 < 4
+- name based virtual hostingだとまずいかも。
+ - portに80以外を使えばいい。 3165とか。
+
+
+うーむ、そもそもにそんなものをローカルにおいていいのか？google waveを使えないか？
+
 
