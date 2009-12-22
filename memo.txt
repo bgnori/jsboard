@@ -351,3 +351,16 @@ http://satoshi.blogs.com/life/2006/10/jsoncomet.html
 うーむ、そもそもにそんなものをローカルにおいていいのか？google waveを使えないか？
 
 
+
+socketでサーバをかいてみる。
+シングルスレッドで複数のコネクションを受け付けるにはどうすればよいのだろうか？
+
+
+twistedなら簡単なようだ。
+普通のwebサーバ側からconnectionを張るなりなんなりしてmessageをbroadcastしてくれればよい。
+
+
+とりあえず、原型になりそうなものはできた。
+commitしてリファインしていけそう。
+
+
