@@ -1,0 +1,69 @@
+<html>
+<head>
+<title>comet tests</sample>
+<!--
+  Copyright 2009 Noriyuki Hosaka bgnori@gmail.com
+  -->
+
+<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+<script type="text/javascript">
+google.load("jquery", "1.3.2");
+</script>
+
+<script type="text/javascript">
+function update(){
+  $.ajax({
+    url: "http://localhost:3165",
+    dataType : "jsonp",
+    type: "GET",
+    cache : false,
+    data : {},
+    timeout: 60*1000,
+    success : function (data, dataType){
+      $("#chat").append($("<div>" +  data.who + ":" +  data.message + "</div>"));
+      update();
+    },
+    error : function(){
+      alert("error");
+    }
+  });
+};
+
+$(document).ready(function(){
+  $("form").submit(function(){
+    d = $('#message').val()
+    $.ajax({
+      url:"http://localhost:3124",
+      dataType : "jsonp",
+      //type: "POST",
+      type: "GET",
+      cache : false,
+      data : {message:d},
+      timeout: 60*1000,
+      success : function (data, dataType){
+        $('#message').val('');
+      },
+      error : function(){
+        alert("error");
+      },
+    });
+    return false;
+  });
+  $("#chat").append($("<div>this is chat area.</div>"));
+  update();
+});
+</script>
+
+</head>
+<div id="chat">
+<div> 0 </div>
+</div>
+
+<form > 
+<input type="text" id="message" />
+<input type="submit" />
+<input type="reset"  />
+</form>
+<body>
+</body>
+</html>

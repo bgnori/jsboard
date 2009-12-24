@@ -422,6 +422,14 @@ parse_requestがFalseを返している。
 
 
 
-げ、WSGIのBaseHandlerとStreamHandlerは系統が違う！
+げ、wsgiのBaseHandlerとStreamHandlerは系統が違う！
+-> そんなことはなかった。file seek(0)しわすれ。
+
+js/html側：submitのハンドラでfalseを返し、htmlのsubmit動作を抑制する必要がある。
+
+
+
+
+
 
 
