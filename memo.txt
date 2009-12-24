@@ -358,6 +358,7 @@ socketでサーバをかいてみる。
 
 twistedなら簡単なようだ。
 普通のwebサーバ側からconnectionを張るなりなんなりしてmessageをbroadcastしてくれればよい。
+http://omake.accense.com/wiki/Twisted%E3%81%AE%E7%9F%AD%E3%81%84%E3%82%BD%E3%83%BC%E3%82%B9%E3%82%B3%E3%83%BC%E3%83%89%E9%9B%86
 
 
 とりあえず、原型になりそうなものはできた。
@@ -369,5 +370,58 @@ commitしてリファインしていけそう。
 - tableとかを表現する
 -- urlのmappingを考える -> client側から考えたほうがらくでは？
 
+
+BaseServer/TCPServer/BaseHTTPServer
+
+    def serve_forever(self):
+        """Handle one request at a time until doomsday."""
+        while 1:
+            self.handle_request()
+
+    def handle_request(self):
+        """Handle one request, possibly blocking."""
+        try:
+            request, client_address = self.get_request()
+        except socket.error:
+            return
+        if self.verify_request(request, client_address):
+            try:
+                self.process_request(request, client_address)
+            except:
+                self.handle_error(request, client_address)
+                self.close_request(request)
+
+
+    def finish_request(self, request, client_address):
+        """Finish one request by instantiating RequestHandlerClass."""
+        self.RequestHandlerClass(request, client_address, self)
+
+    def __init__(self, server_address, RequestHandlerClass):
+        """Constructor.  May be extended, do not override."""
+        self.server_address = server_address
+        self.RequestHandlerClass = RequestHandlerClass
+なので、
+基本的にはRequestHandlerClassをnewしてあげればいい。
+WSGIServerを継承しててきとうに書き換えてあげる。
+
+
+class BaseRequestHandler:
+    def __init__(self, request, client_address, server):
+        self.request = request
+        self.client_address = client_address
+        self.server = server
+        try:
+            self.setup()
+            self.handle()
+            self.finish()
+        finally:
+            sys.exc_traceback = None    # Help garbage collection
+が走らない？
+
+parse_requestがFalseを返している。
+
+
+
+げ、WSGIのBaseHandlerとStreamHandlerは系統が違う！
 
 
