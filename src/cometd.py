@@ -2,30 +2,36 @@
 
 import StringIO
 
-from twisted.internet import reactor, protocol
-
 from SocketServer import BaseServer, TCPServer
-from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, demo_app
-import cgi
 
-import simplejson
+from wsgiref.simple_server import WSGIRequestHandler, WSGIServer
+from wsgiref.handlers import SimpleHandler
+from twisted.internet import protocol
 
-clients = []
+__version__ = "0.1"
 
-class WSGIAdaptor(WSGIServer):
+
+class CometServer(WSGIServer):
   application = None
 
   def __init__(self, server_address, RequestHandlerClass):
-    print 'WSGIAdaptor:__init__'
+    print 'CometServer:__init__'
     BaseServer.__init__(self, server_address, RequestHandlerClass)
     #self.socket = socket.socket(self.address_family,
     #                            self.socket_type)
     self.server_bind()
     #self.server_activate()
+    self.pendingHandlers = []
+
+  def set_app(self, app):
+    self.app = app
+
+  def get_app(self):
+    return self.app
 
   def server_bind(self):
     """Override server_bind to store the server name."""
-    print 'WSGIAdaptor::server_bind'
+    print 'CometServer::server_bind'
     #TCPServer.server_bind(self)
     #HTTPServer.server_bind(self)
     self.server_name = 'localhost' # fake
@@ -33,128 +39,178 @@ class WSGIAdaptor(WSGIServer):
     self.setup_environ()
     self.base_environ['server'] = self
 
-  def get_message(self):
-    return self.message
+  def storeHandler(self, handler, path):
+    print 'CometServer:storeHandler', handler, path
+    self.pendingHandlers.append(handler)
 
-  def set_message(self, message):
-    self.message = message
+  def getHandlers(self, path):
+    return self.pendingHandlers
+
+  def handle_request(self, request, client_address, protocol):
+    print 'CometServer:handle_request'
+    h = self.RequestHandlerClass(request, client_address, self)
+    h.rfile.seek(0)
+    h.raw_requestline = h.rfile.readline()
+    if not h.raw_requestline:
+      self.close_connection = 1
+      print 'closing connection'
+      return
+    if not h.parse_request():
+      print 'parse error'
+      return 
+    path, message = h.handle_request(protocol)
+    print path, message
+    self.post_process_request(h, path, message)
+
+  def post_process_request(self, h, path, message):
+    raise
+
+  def finish_request(self, request, client_address):
+      """Finish one request by instantiating RequestHandlerClass."""
+      raise
+      #self.RequestHandlerClass(request, client_address, self)
+
+  def handle_response(self, path, message):
+    '''Ugh!'''
+    for h in self.getHandlers(path):
+      print h
+      h.handle_response(path, message)
+    self.pendingHandlers = [] #ugh!
 
 
-class WSGISupportHandler(WSGIRequestHandler):
+class PublishServer(CometServer):
+  def set_subscriber(self, subscriber):
+    self.subscriber = subscriber
+
+  def post_process_request(self, h, path, message):
+    h.handle_response(path, message)
+    self.subscriber.handle_response(path, message)
+
+class SubscribeServer(CometServer):
+  def post_process_request(self, h, path, message):
+    assert message is None
+    self.storeHandler(h, path)
+
+
+
+class SplittedHandler(SimpleHandler):
+  def get_ready(self, app):
+    try:
+      print "SplittedHandler:get_ready"
+      self.setup_environ()
+      print "made setup_environ, calling app"
+      a, b = app(self.environ, self.start_response)
+      print a, b
+      return a, b
+    except:
+      try:
+        self.handle_error()
+        return None, None
+      except:
+        # If we get an error handling an error, just give up already!
+        self.close()
+        raise   # ...and let the actual server figure it out.
+
+
+class CometHandler(WSGIRequestHandler):
+
+  server_version = "CometServer/" + __version__
+
+  def __init__(self, request, client_address, server):
+    self.rfile, self.wfile = request
+    self.client_address = client_address
+    self.server = server
+    self.httphandler = None
+
+  def close(self):
+    pass
+
   def setup(self):
-    self.rfile, self.wfile = self.request
+    raise
 
   def finish(self):
-    pass
+    raise
+
 
   def handle(self):
-    self.rfile.seek(0) #UGH! UGH! UGH!
+    raise
     WSGIRequestHandler.handle(self)
-
-  def parse_request(self):
-    print 'raw_requestline', self.raw_requestline
-    ok = WSGIRequestHandler.parse_request(self)
-    print "WSGIRequestHandler:parse_request", ok
-    if not ok:
-      print 'rfile'
-      print self.rfile.getvalue()
-      print 'wfile'
-      print self.wfile.getvalue()
-
-    return ok
-
-
-def subscribe(environ, start_response):
-  stdout = StringIO.StringIO()
-  q = cgi.parse_qs(environ['QUERY_STRING'])
-  msg = environ['server'].get_message()
-  value = {'message':msg, 'who':'hogeo'}
-  j = '%s(%s);'%(q['callback'][0], simplejson.dumps(value))
-  print >> stdout, j
-  start_response("200 OK", [('Content-Type','text/javascript')])
-  return [stdout.getvalue()]
+  
+  def handle_request(self, protocol):
+    self.protocol = protocol
+    print 'CometHandler:handle_request'
+    server = self.server
+    app = server.get_app()
+    self.rfile.seek(0) 
+    print self.rfile.getvalue()
+    print 'evoking app'
+    h = SplittedHandler(
+            self.rfile, self.wfile, self.get_stderr(), self.get_environ()
+            )
+    h.request_handler = self
+    self.app_request, self.app_response = h.get_ready(app)
+    self.httphandler = h
+    print self.app_request, self.app_response, self.httphandler
+    return self.app_request()
 
 
-
-class Subscription(protocol.Protocol):
-  def connectionLost(self, reason):
-    pass
-
-  def connectionMade(self):
-    print 'Subscription::connectionMade'
-    self.rfile = StringIO.StringIO()#'rb', self.rbufsize)
-    self.wfile = StringIO.StringIO()#'wb', self.wbufsize)
-    self.adaptor = WSGIAdaptor(('localhost', 3165), WSGISupportHandler) #ugh!
-    self.adaptor.set_app(subscribe)
-    clients.append(self)
-
-  def dataReceived(self, data):
-    self.rfile.write(data) 
-
-  def sendMessge(self, msg): 
-    adaptor = self.adaptor
-    adaptor.set_message(msg)
-    peer = self.transport.getPeer()
-    adaptor.finish_request((self.rfile, self.wfile), peer)
-    print '=== Subscriver (request) ===='
-    print self.rfile.getvalue() 
-    print 
-    print '=== Subscriver (response) ===='
-    print self.wfile.getvalue() 
-    print 
-    self.transport.write(self.wfile.getvalue())
-
-class Subscriver(protocol.ServerFactory):
-  def buildProtocol(self, addr):
-    return Subscription()
+  def handle_response(self, path, message):
+    print 'CometHandler:handle_response'
+    self.httphandler.result = self.app_response(path, message)
+    self.httphandler.finish_response()
+    r = self.wfile.getvalue()
+    print r
+    self.protocol.sendData()
 
 
+def make(publish, subscribe):
+  sub = SubscribeServer(('localhost', 3165), CometHandler) #ugh!
+  sub.set_app(subscribe)
 
-def publish(environ, start_response):
-  stdout = StringIO.StringIO()
-  print 'publish'
-  q = cgi.parse_qs(environ['QUERY_STRING'])
-  msg = q['message'][0]
-  print msg
-  environ['server'].set_message(msg)
-  value = {'status': True}
-  j = '%s(%s);'%(q['callback'][0], simplejson.dumps(value))
-  print >> stdout, j
-  start_response("200 OK", [('Content-Type','text/javascript')])
-  return [stdout.getvalue()]
+  pub = PublishServer(('localhost', 3124), CometHandler) #ugh!
+  pub.set_subscriber(sub)
+  pub.set_app(publish)
 
+  class Subscription(protocol.Protocol):
+    def connectionLost(self, reason):
+      pass
+  
+    def connectionMade(self):
+      self.rfile = StringIO.StringIO()#'rb', self.rbufsize)
+      self.wfile = StringIO.StringIO()#'wb', self.wbufsize)
+  
+    def dataReceived(self, data):
+      self.rfile.write(data) 
+      peer = self.transport.getPeer()
+      sub.handle_request((self.rfile, self.wfile), peer, self)
+  
+    def sendData(self): 
+      self.transport.write(self.wfile.getvalue())
+  
+  class Subscriver(protocol.ServerFactory):
+    def buildProtocol(self, addr):
+      return Subscription()
+  
+  class Publication(protocol.Protocol):
+    def connectionLost(self, reason):
+      pass
+  
+    def connectionMade(self):
+      print 'Publication::connectionMade'
+      self.rfile = StringIO.StringIO()#'rb', self.rbufsize)
+      self.wfile = StringIO.StringIO()#'wb', self.wbufsize)
+  
+    def dataReceived(self, data):
+      self.rfile.write(data) #ugh!
+      peer = self.transport.getPeer()
+      pub.handle_request((self.rfile, self.wfile), peer, self)
 
+    def sendData(self): 
+      self.transport.write(self.wfile.getvalue())
+    
+  class Publisher(protocol.ServerFactory):
+    def buildProtocol(self, addr):
+      return Publication()
 
-class Publication(protocol.Protocol):
-  def connectionMade(self):
-    print 'Publication::connectionMade'
-    self.rfile = StringIO.StringIO()#'rb', self.rbufsize)
-    self.wfile = StringIO.StringIO()#'wb', self.wbufsize)
-    self.adaptor = WSGIAdaptor(('localhost', 3124), WSGISupportHandler) #ugh!
-    self.adaptor.set_app(publish)
-
-  def connectionLost(self, reason):
-    pass
-
-  def dataReceived(self, data):
-    self.rfile.write(data) #ugh!
-    print '=== Publisher ===='
-    print data
-    print 
-    peer = self.transport.getPeer()
-    self.adaptor.finish_request((self.rfile, self.wfile), peer)
-    msg = self.adaptor.get_message()
-    for c in clients:
-      c.sendMessge(msg)
-    self.transport.write(self.wfile.getvalue())
-
-
-class Publisher(protocol.ServerFactory):
-  def buildProtocol(self, addr):
-    return Publication()
-
-
-reactor.listenTCP(3165, Subscriver())
-reactor.listenTCP(3124, Publisher())
-reactor.run()
+  return Publisher(), Subscriver()
 

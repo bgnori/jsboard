@@ -429,7 +429,23 @@ js/html側：submitのハンドラでfalseを返し、htmlのsubmit動作を抑�
 
 
 
+ServerInstanceを何回も生成したくない。
+元のコードではハンドラの生成・解放とrequestの処理完了と同じだが、
+生成してpublishを待つ必要がある。
+
+requestをparseしないとなにをsubscribeしてもらいたいのかわからないので振り分けができない。
+subscribe側でwsgiのinterfaceを維持するには無理がある。
 
 
+requestをparseしなんかする部分と、kickと情報をもらってresponseを作る部分に分割する。
+そうすると
+runじゃだめ。
 
+BaseHandlerは作ってすぐ寿命が尽きる。寿命が変わるのでいい感じはしない。
+__init__を書き換えることになる。
+
+serverにHandlerインスタンスを複数保持している必要がある。
+
+
+response headerを生成してなかった。
 
