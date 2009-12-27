@@ -503,4 +503,10 @@ http://wiki.livedoor.jp/daffy1/d/Bayeux%20Protocol%CB%DD%CC%F5
 かな。
 
 
+なんだろう、Bayeuxはclientをhandshakeで認証する方向で作られている。
+sessionを作る方向ではない？
+
+
+
+
 

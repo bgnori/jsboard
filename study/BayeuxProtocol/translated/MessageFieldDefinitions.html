@@ -1,6 +1,6 @@
-<h1 class="clause">3. Message Field Definitions</h1>
+<h1 class="clause">3. メッセージフィールドの定義 (Message Field Definitions)</h1>
 
-<h2 class="clause">3.1. channel</h2>
+<h2 class="clause">3.1. チャネル(channel)</h2>
 
 <p>
     The channel message field MUST be included in every Bayeux message to specify
@@ -8,26 +8,48 @@
     the destination of the message, and in a response it specifies the source of
     the message.
 </p>
+<p>
+  チャネルメッセージフィールドは、送信元もしくは宛先を指定するために
+  Bayeuxメッセージに必ず含まれていなければならい。
 
-<h2 class="clause">3.2. version</h2>
+  要求において、チャネルはメッセージの宛先を指定し、応答においては送信元を示す。
+</p>
+
+<h2 class="clause">3.2. バージョン(version)</h2>
 
 <p>
     The version message field MUST be included in messages to/from the
     "/meta/handshake" channel to indicate the protocol version expected by the
     client/server.
 </p>
+<p>
+  バージョンメッセージフィールドは、チャネル"/meta/handshake/"でやりとりされる
+  メッセージに必ず含まれていなければならない。
+</p>
 
-<h2 class="clause">3.3. minimumVersion</h2>
+<h2 class="clause">3.3. ミニマムバージョン(minimumVersion)</h2>
 
 <p>
     The minimumVersion message field MAY be included in messages to/from the
     "/meta/handshake" channel to indicate the oldest protocol version that can be
     handled by the client/server.
 </p>
+<p>
+ チャンネル"/meta/handshake/"でやりとりされるメッセージは
+ 処理可能なもっとも古いバージョンを示すこのフィールドを含めてもよい。
+</p>
 
-<h2 class="clause">3.4. supportedConnectionTypes</h2>
+<h2 class="clause">3.4. 利用可能な接続様式(supportedConnectionTypes)</h2>
 
 <p>
+    The supportedConnectionTypes field is included in messages to/from the
+    "/meta/handshake" channel to allow clients and servers to reveal the transports
+    that are supported. The value is an array of strings, with each string
+    representing a transport name. Defined connection types include:
+</p>
+<p>
+  利用可能な接続様式・・・
+訳注；めんどくさいぱす。
     The supportedConnectionTypes field is included in messages to/from the
     "/meta/handshake" channel to allow clients and servers to reveal the transports
     that are supported. The value is an array of strings, with each string
@@ -57,10 +79,17 @@
     connection type and SHOULD support "callback-polling".<br/>
     All other connection types are OPTIONAL.
 </p>
+<p>
+    すべてのサーバとクライアントは、long-pollingコネクションをサポートしなければならない。
+    また、'callback-polling'をサポートすべきである。
+    ほかの手法は、オプションである。
+</p>
 
 <h2 class="clause">3.5. clientId</h2>
 
 <p>
+  clientIdでサーバはクライアントを認識する。
+  "/meta/handshake"以外ではかならず含まれていないといけない。
     The clientId message field uniquely identifies a client to the Bayeux server.
     The clientId message field MUST be included in every message sent to the server
     except for messages sent to the "/meta/handshake" channel and MAY be omitted in

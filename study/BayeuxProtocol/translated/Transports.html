@@ -13,6 +13,22 @@
     interval advice fields to throttle clients, which in the worst-case degenerate to traditional polling behaviour.
 </p>
 
+<p>
+'Long-polling"とは、サーバとクライアント間のメッセージ配信にかかるレイテンシと処理リソース、ネットワークリソースをを最小化しようと試みるpolling transportです。
+いわゆる一般的なpollingではサーバは、要求に対して送信すべきイベントがなくとも応答を送信したらすぐに終了します。
+そのため最悪のケースでの遅延はクライアントが投げるリクエストの感覚です。
+
+Long-pollingサーバの実装では、要求を握ったまま、配送すべきイベントが発生するまで待ちます。
+目的は、中断状態の要求をイベントが生じたときにすぐに使えるように常に持っておき、メッセージ配送のレイテンシを最小化することにある。
+
+再接続とinterval advice fieldsを用いてクライアントを制御することで
+サーバ負荷の増大とリソース枯渇に対処することができ、その最悪の場合でも、一般的なポーリングサーバの挙動に縮退するにとどまる。
+
+訳注：いわゆるCometな挙動
+</p>
+
+
+
 <h3 class="clause">6.1.1 long-polling request messages</h3>
 <p>
     Messages SHOULD be sent to the server as the body of an <em>application/json</em>
