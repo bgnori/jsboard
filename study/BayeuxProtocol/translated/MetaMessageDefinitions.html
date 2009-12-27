@@ -1,0 +1,605 @@
+<h1 class="clause">4. Meta Message Definitions</h1>
+
+<h2 class="clause">4.1. Handshake</h2>
+
+<h3 class="clause">4.1.1. Handshake Request</h3>
+
+<p>
+    A Bayeux client initiates a connection negotiation by sending a message to the
+    "/meta/handshake" channel.<br/>
+
+    For same domain connections, the handshake requests MUST be sent to the server
+    using the long-polling transport, while for cross domain connections the handshake
+    request MAY be sent with the long-polling transport and failing that with the
+    callback-polling transport.
+</p>
+
+<p>
+    A handshake request MUST contain the message fields:
+</p>
+<dl>
+    <dt>channel</dt>
+    <dd>
+        value "/meta/handshake"
+    </dd>
+    <dt>version</dt>
+    <dd>
+        The version of the protocol supported by the client.
+    </dd>
+    <dt>supportedConnectionTypes</dt>
+    <dd>
+        An array of the connection types supported by the client for the purposes
+        of the connection being negotiated (see section 3.4).<br/>
+        This list MAY be a subset of the connection types actually supported if
+        the client wishes to negotiate a specific connection type.
+    </dd>
+</dl>
+
+<p>A handshake request MAY contain the message fields:
+</p>
+<dl>
+    <dt>minimumVersion</dt>
+    <dt>ext</dt>
+    <dt>id</dt>
+</dl>
+
+<p>
+    A client SHOULD NOT send any other message in the request with a handshake
+    message. A server MUST ignore any other message sent in the same request as a
+    handshake message. An example handshake request is:
+</p>
+<pre class="example">
+[
+  {
+     "channel": "/meta/handshake",
+     "version": "1.0",
+     "minimumVersion": "1.0beta",
+     "supportedConnectionTypes": ["long-polling", "callback-polling", "iframe"]
+   }
+]
+</pre>
+
+<h3 class="clause">4.1.2. Handshake Response</h3>
+
+<p>
+    A Bayeux server MUST respond to a handshake request with a handshake response
+    message. How the handshake response is formatted depends on the transport that
+    has been agreed between client and server.
+</p>
+
+<h4>Successful handshake response</h4>
+
+<p>
+    A successful handshake response MUST contain the message fields:
+</p>
+<dl>
+    <dt>channel</dt>
+    <dd>
+        value "/meta/handshake"
+    </dd>
+    <dt>version</dt>
+    <dt>supportedConnectionTypes</dt>
+    <dd>
+        The connection types supported by the server for the purposes of the
+        connection being negotiated.<br/>
+        This list MAY be a subset of the connection types actually supported if the
+        server wishes to negotiate a specific connection type.<br/>
+        This list MUST contain at list one element in common with
+        the supportedConnectionType provided in the handshake request. If there are
+        no connectionTypes in common, the handshake response MUST be
+        unsuccessful.
+    </dd>
+    <dt>clientId</dt>
+    <dd>
+        A newly generated unique ID string.
+    </dd>
+    <dt>successful</dt>
+    <dd>
+        value true
+    </dd>
+</dl>
+
+<p>
+    A successful handshake response MAY contain the message fields:
+</p>
+<dl>
+    <dt>minimumVersion</dt>
+    <dt>advice</dt>
+    <dt>ext</dt>
+    <dt>id</dt>
+    <dd>
+        same value as request message id
+    </dd>
+    <dt>authSuccessful</dt>
+    <dd>
+        Value true, this field may be included to support prototype client
+        implementations that required the authSuccessful field
+    </dd>
+</dl>
+<p>An example successful handshake response is:</p>
+<pre class="example">
+[
+  {
+     "channel": "/meta/handshake",
+     "version": "1.0",
+     "minimumVersion": "1.0beta",
+     "supportedConnectionTypes": ["long-polling","callback-polling"],
+     "clientId": "Un1q31d3nt1f13r",
+     "successful": true,
+     "authSuccessful": true,
+     "advice": { "reconnect": "retry" }
+   }
+]
+</pre>
+
+<h4>Unsuccessful handshake response</h4>
+
+<p>An unsuccessful handshake response MUST contain the message fields:
+</p>
+<dl>
+    <dt>channel</dt>
+    <dd>
+        value "/meta/handshake"
+    </dd>
+    <dt>successful</dt>
+    <dd>
+        value false
+    </dd>
+    <dt>error</dt>
+    <dd>
+        a string with the description of the reason for the failure.
+    </dd>
+</dl>
+
+<p>
+    An unsuccessful handshake response MAY contain the message fields:
+</p>
+
+<dl>
+    <dt>supportedConnectionTypes</dt>
+    <dd>
+        The connection types supported by the server for the purposes of the
+        connection being negotiated. This list MAY be a subset of the connection
+        types actually supported if the server wishes to negotiate a specific
+        connection type.
+    </dd>
+    <dt>advice</dt>
+    <dt>version</dt>
+    <dt>minimumVersion</dt>
+    <dt>ext</dt>
+    <dt>id</dt>
+    <dd>
+        same value as request message id
+    </dd>
+</dl>
+<p>An example unsuccessful handshake response is:</p>
+
+<pre class="example">
+[
+  {
+     "channel": "/meta/handshake",
+     "version": "1.0",
+     "minimumVersion": "1.0beta",
+     "supportedConnectionTypes": ["long-polling","callback-polling"],
+     "successful": false,
+     "error": "Authentication failed",
+     "advice": { "reconnect": "none" }
+   }
+]
+</pre>
+
+<p>
+    For complex connection negotiations, multiple handshake messages may be
+    exchanged between the Bayeux client and server. The handshake response will
+    set the "successful" field to false until the handshake processs is complete.
+    The advice and ext fields may be used to communicate additional information
+    needed to complete the handshake process. An unsuccessful handshake response
+    with reconnect advice of "handshake" is used to continue the connection
+    negotiation. An unsuccessful handshake response with reconnect advice of
+    "none" is used to terminate connection negotiations.
+</p>
+
+<!--
+	FIXME: need example of challenge-response implemented over ext field here!
+-->
+
+<h2 class="clause">4.2. Connect</h2>
+
+<h3 class="clause">4.2.1. Connect Request</h3>
+
+<p>
+    After a Bayeux client has discovered the server's capabilities with a
+    handshake exchange, a connection is established by sending a message to the
+    "/meta/connect" channel. This message may be transported over any of the
+    transports indicated as supported by the server in the handshake response.
+</p>
+
+<p>
+    A connect request MUST contain the message fields:
+</p>
+<dl>
+    <dt>channel</dt>
+    <dd>
+        value "/meta/connect"
+    </dd>
+    <dt>clientId</dt>
+    <dd>The client ID returned in the handshake response</dd>
+    <dt>connectionType</dt>
+    <dd>
+        The connection type used by the client for the purposes of this connection.
+    </dd>
+</dl>
+
+<p>
+    A connect request MAY contain the message fields:
+</p>
+
+<dl>
+    <dt>ext</dt>
+    <dt>id</dt>
+</dl>
+<p>
+    A client MAY send other messages in the same HTTP request with a connection
+    message. A server MUST handle any other message sent in the same request as a
+    connect message after the handling of the connect message is complete.
+</p>
+
+<p>An example connect request is:</p>
+<pre class="example">
+[
+  {
+     "channel": "/meta/connect",
+     "clientId": "Un1q31d3nt1f13r",
+     "connectionType": "long-polling"
+   }
+]
+</pre>
+
+<p>
+    A transport MUST maintain one and only one outstanding connect message. When a
+    HTTP response that contains a /meta/connect response terminates, the client
+    MUST wait at least the interval specified in the last received advice before
+    following the advice to reestablish the connection
+</p>
+
+<h3 class="clause">4.2.2. Connect Response</h3>
+
+<p>
+    A Bayeux server MUST respond to a connect request with a connect response
+    message over the same transport used for the request.
+</p>
+
+<p>
+    A Bayeux server MAY wait to respond until there are event messages available in
+    the subscribed channels for the client that need to be delivered to the client.
+</p>
+
+<p>
+    A connect responses MUST contain the message fields:
+</p>
+<dl>
+    <dt>channel</dt>
+    <dd>value "/meta/connect"</dd>
+    <dt>successful</dt>
+    <dd>boolean indicating the success or failure of the connection</dd>
+    <dt>clientId</dt>
+    <dd>The client ID returned in the handshake response</dd>
+</dl>
+
+<p>A connect response MAY contain the message fields:</p>
+
+<dl>
+    <dt>error</dt>
+    <dt>advice</dt>
+    <dt>ext</dt>
+    <dt>id</dt>
+    <dd>same value as request message id</dd>
+    <dt>timestamp</dt>
+</dl>
+
+<p>An example connect response is:</p>
+<pre class="example">
+[
+  {
+     "channel": "/meta/connect",
+     "successful": true,
+     "error": "",
+     "clientId": "Un1q31d3nt1f13r",
+     "timestamp": "12:00:00 1970",
+     "advice": { "reconnect": "retry" }
+   }
+]
+</pre>
+
+<p>
+    The client MUST maintain only a single outstanding connect message. If the
+    server does not have a current outstanding connect and a connect is not
+    received within a configured timeout, then the server SHOULD act as if a
+    disconnect message has been received.
+</p>
+
+<h2 class="clause">4.4. Disconnect</h2>
+
+<h3 class="clause">4.4.1. Disconnect Request</h3>
+
+<p>
+    When a connected client wishes to cease operation it should send a request to
+    the "/meta/disconnect" channel for the server to remove any client-related state. The
+    server SHOULD release any waiting meta message handlers. Bayeux client
+    applications should send a disconnect request when the user shuts down a
+    browser window or leaves the current page. A Bayeux server SHOULD not rely
+    solely on the client sending a disconnect message to remove client-related state
+    information because a disconnect message might not be sent from the client or
+    the disconnect request might not reach the server.
+</p>
+<p>
+    A disconnect request MUST contain the message fields:
+</p>
+<dl>
+    <dt>channel</dt>
+    <dd>
+        value "/meta/disconnect"
+    </dd>
+    <dt>clientId</dt>
+    <dd>The client ID returned in the handshake response</dd>
+</dl>
+
+<p>
+    A disconnect request MAY contain the message fields:
+</p>
+<dl>
+    <dt>ext</dt>
+    <dt>id</dt>
+</dl>
+<p>An example disconnect request is:</p>
+<pre class="example">
+[
+  {
+     "channel": "/meta/disconnect",
+     "clientId": "Un1q31d3nt1f13r"
+   }
+]
+</pre>
+
+<h3 class="clause">4.4.2. Disconnect Response</h3>
+
+<p>
+    A Bayeux server MUST respond to a disconnect request with a disconnect
+    response.
+</p>
+
+<p>
+    A disconnect response MUST contain the message fields:
+</p>
+<dl>
+    <dt>channel</dt>
+    <dd>
+        value "/meta/disconnect"
+    </dd>
+    <dt>clientId</dt>
+    <dd>The client ID returned in the handshake response</dd>
+    <dt>successful</dt>
+    <dd>
+        boolean value indicated the success or failure of the disconnect request
+    </dd>
+</dl>
+
+<p>
+    A disconnect response MAY contain the message fields:
+</p>
+<dl>
+    <dt>error</dt>
+    <dt>ext</dt>
+    <dt>id</dt>
+    <dd>same value as request message id</dd>
+</dl>
+<p>An example disconnect response is:</p>
+<pre class="example">
+[
+  {
+     "channel": "/meta/disconnect",
+     "clientId": "Un1q31d3nt1f13r",
+     "successful": true
+   }
+]
+</pre>
+
+<h2 class="clause">4.5. Subscribe</h2>
+
+<h3 class="clause">4.5.1. Subscribe Request</h3>
+
+<p>
+    A connected Bayeux client may send subscribe messages to register interest in a
+    channel and to request that messages published to that channel are
+    delivered to itself.
+</p>
+
+<p>
+    A subscribe request MUST contain the message fields:
+</p>
+
+<dl>
+    <dt>channel</dt>
+    <dd>
+        value "/meta/subscribe"
+    </dd>
+    <dt>clientId</dt>
+    <dd>The client ID returned in the handshake response</dd>
+    <dt>subscription</dt>
+    <dd>
+        a channel name or a channel pattern or an array of channel names and
+        channel patterns.
+    </dd>
+</dl>
+<p>
+    A subscribe request MAY contain the message fields:
+</p>
+
+<dl>
+    <dt>ext</dt>
+    <dt>id</dt>
+</dl>
+
+<p>An example subscribe request is:</p>
+<pre class="example">
+[
+  {
+     "channel": "/meta/subscribe",
+     "clientId": "Un1q31d3nt1f13r",
+     "subscription": "/foo/**"
+   }
+]
+</pre>
+
+<h3 class="clause">4.5.2. Subscribe Response</h3>
+
+<p>
+    A Bayeux server MUST respond to a subscribe request with a subscribe response message.
+</p>
+
+<p>
+    A Bayeux server MAY send event messages for the client in the same HTTP
+    response as the subscribe response, including events for the channels just
+    subscribed to.
+</p>
+
+<p>
+    A subscribe response MUST contain the message fields:
+</p>
+<dl>
+    <dt>channel</dt>
+    <dd>value "/meta/subscribe"</dd>
+    <dt>successful</dt>
+    <dd>boolean indicating the success or failure of the subscribe</dd>
+    <dt>clientId</dt>
+    <dd>The client ID returned in the handshake response</dd>
+    <dt>subscription</dt>
+    <dd>a channel name or a channel pattern or an array of channel names and channel patterns.</dd>
+</dl>
+<p>A subscribe response MAY contain the message fields:</p>
+<dl>
+    <dt>error</dt>
+    <dt>advice</dt>
+    <dt>ext</dt>
+    <dt>id</dt>
+    <dd>same value as request message id</dd>
+    <dt>timestamp</dt>
+</dl>
+<p>An example successful subscribe response is:</p>
+<pre class="example">
+[
+  {
+     "channel": "/meta/subscribe",
+     "clientId": "Un1q31d3nt1f13r",
+     "subscription": "/foo/**",
+     "successful": true,
+     "error": ""
+   }
+]
+</pre>
+<p>An example failed subscribe response is:</p>
+<pre class="example">
+[
+  {
+     "channel": "/meta/subscribe",
+     "clientId": "Un1q31d3nt1f13r",
+     "subscription": "/bar/baz",
+     "successful": false,
+     "error": "403:/bar/baz:Permission Denied"
+   }
+]
+</pre>
+
+<h2 class="clause">4.6. Unsubscribe</h2>
+
+<h3 class="clause">4.6.1. Unsubscribe Request</h3>
+
+<p>
+    A connected Bayeux client may send unsubscribe messages to cancel interest in a
+    channel and to request that messages published to that channel are not
+    delivered to itself.
+</p>
+
+<p>
+    An unsubscribe request MUST contain the message fields:
+</p>
+
+<dl>
+    <dt>channel</dt>
+    <dd>
+        value "/meta/unsubscribe"
+    </dd>
+    <dt>clientId</dt>
+    <dd>The client ID returned in the handshake response</dd>
+    <dt>subscription</dt>
+    <dd>
+        a channel name or a channel pattern or an array of channel names and
+        channel patterns.
+    </dd>
+</dl>
+
+<p>
+    An unsubscribe request MAY contain the message fields:
+</p>
+
+<dl>
+    <dt>ext</dt>
+    <dt>id</dt>
+</dl>
+<p>An example unsubscribe request is:</p>
+<pre class="example">
+[
+  {
+     "channel": "/meta/unsubscribe",
+     "clientId": "Un1q31d3nt1f13r",
+     "subscription": "/foo/**"
+   }
+]
+</pre>
+
+<h3 class="clause">4.6.2. Unsubscribe Response</h3>
+
+<p>
+    A Bayeux server MUST respond to a unsubscribe request with a unsubscribe response message.
+</p>
+<p>
+    A Bayeux server MAY send event messages for the client in the same HTTP response as the unsubscribe response,
+    including events for the channels just unsubscribed to as
+    long as the event was processed before the unsubscribe request.
+</p>
+
+<p>
+    An unsubscribe response MUST contain the message fields:
+</p>
+<dl>
+    <dt>channel</dt>
+    <dd>value "/meta/unsubscribe"</dd>
+    <dt>successful</dt>
+    <dd>boolean indicating the success or failure of the unsubscribe operation</dd>
+    <dt>clientId</dt>
+    <dd>The client ID returned in the handshake response</dd>
+    <dt>subscription</dt>
+    <dd>a channel name or a channel pattern or an array of channel names and channel patterns.</dd>
+</dl>
+<p>A unsubscribe response MAY contain the message fields:</p>
+<dl>
+    <dt>error</dt>
+    <dt>advice</dt>
+    <dt>ext</dt>
+    <dt>id</dt>
+    <dd>same value as request message id</dd>
+    <dt>timestamp</dt>
+</dl>
+<p>An example unsubscribe response is:</p>
+<pre class="example">
+[
+  {
+     "channel": "/meta/unsubscribe",
+     "clientId": "Un1q31d3nt1f13r",
+     "subscription": "/foo/**",
+     "successful": true,
+     "error": ""
+   }
+]
+</pre>
+

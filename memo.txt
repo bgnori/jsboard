@@ -473,7 +473,7 @@ component of a URI without parameters as defined by RFC2396.
 回避するためにはQueueingが必要になる。つまりそれはなんらかのsession管理をサーバ側で
 しないといけないことを意味する。
 
-QueuingするならXML-RPCのマルチリクエストみたいなことをしたくなる訳で、
+QueueingするならXML-RPCのマルチリクエストみたいなことをしたくなる訳で、
 
 [
   {
@@ -494,6 +494,13 @@ QueuingするならXML-RPCのマルチリクエストみたいなことをした
 
 http://wiki.livedoor.jp/daffy1/d/Bayeux%20Protocol%CB%DD%CC%F5
 は途中で挫折している。
+
+
+順番としては, 
+- channel/pathの実装
+- chat appliの実装(lobby, room, direct message)
+- queueingの実装
+かな。
 
 
 

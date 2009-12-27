@@ -1,0 +1,484 @@
+<h1 class="title">The Bayeux Specification</h1>
+
+<table class="info tabular">
+    <tr>
+        <td>
+            <b>Request for Comments:</b> not an RFC<br/>
+            <b>Category:</b> Standards Track<br/>
+        </td>
+        <td>
+            Alex Russell<br/>
+            Greg Wilkins<br/>
+            David Davis<br/>
+            Mark Nesbitt<br/>
+        </td>
+    </tr>
+</table>
+
+<h1 class="intro">Bayeux Protocol -- Bayeux 1.0.0</h1>
+
+<h2 class="intro">Status of this Memo</h2>
+
+<p>
+    This document specifies a protocol for the Internet community, and requests
+    discussion and suggestions for improvement.<br/>
+    This memo is written in the style and spirit of an IETF RFC but is not,
+    as of yet, an official IETF RFC.<br/>
+    Distribution of this memo is unlimited. This memo is written in UK English.
+</p>
+
+<h2 class="intro">Copyright Notice</h2>
+
+<p>Copyright &copy; The Dojo Foundation (2007). All Rights Reserved</p>
+
+<h2 class="intro">Abstract</h2>
+
+<p>
+    Bayeux is a protocol for transporting asynchronous messages (primarily over HTTP),
+    with low latency between a web server and web clients.
+</p>
+
+<h1 class="contents">Table of Contents</h1>
+
+<div id="toc"></div>
+
+<h1 class="clause">1. Introduction</h1>
+
+<h2 class="clause">1.1. Purpose</h2>
+
+<p>
+    The primary purpose of Bayeux is to support responsive bidirectional interactions between
+    web clients, for example using using <a href="http://en.wikipedia.org/wiki/AJAX">AJAX</a>, and the web server.
+</p>
+
+<p>
+    Bayeux is a protocol for transporting asynchronous messages (primarily over HTTP), with low latency between a web
+    server and a web client.
+    The messages are routed via named channels and can be delivered:
+</p>
+<ul>
+<li>server to client</li>
+<li>client to server</li>
+<li>client to client (via the server)</li>
+</ul>
+<p>
+    By default, publish subscribe routing semantics are applied to the channels.
+</p>
+
+<p>
+    Delivery of asynchronous messages from the server to a web client is often described as <em>server-push</em>.<br/>
+    The combination of server push techniques with an Ajax web application has been called <em>Comet</em>.<br/>
+    CometD is a project by the Dojo Foundation to provide multiple implementation of the Bayeux protocol
+    in several programming languages.
+</p>
+
+<p>
+    Bayeux seeks to reduce the complexity of developing Comet web applications
+    by allowing implementors to more easily interoperate, to solve common message
+    distribution and routing problems, and to provide mechanisms for incremental
+    improvements and extensions.
+</p>
+
+<h2 class="clause">1.2. Requirements</h2>
+
+<p>
+    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
+    "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be
+    interpreted as described in RFC2119. An implementation is not compliant if it
+    fails to satisfy one or more of the MUST or REQUIRED level requirements for the
+    protocols it implements. An implementation that satisfies all the MUST or
+    REQUIRED level and all the SHOULD level requirements for its protocols is said
+    to be "unconditionally compliant"; one that satisfies all the MUST level
+    requirements but not all the SHOULD level requirements for its protocols is
+    said to be "conditionally compliant."
+</p>
+
+<h2 class="clause">1.3. Terminology</h2>
+
+<p>
+    This specification uses a number of terms to refer to the roles played by
+    participants in, and objects of, Bayeux communication:
+</p>
+<dl>
+    <dt>client</dt>
+    <dd>
+        A program that initiates the communication.<br/>
+        A HTTP client is a client that initiates TCP/IP connections for the purpose of sending HTTP requests.<br/>
+        A Bayeux client initiates the Bayeux message exchange and will typically
+        execute within a HTTP client, but it is likely to have Bayeux clients that
+        execute within HTTP servers. Implementations may distinguish between
+        Bayeux clients running within a HTTP client and Bayeux clients running
+        within the HTTP server. Specifically server-side Bayeux clients MAY be
+        privileged clients with access to private information about other clients
+        (e.g. client IDs) and subscriptions.
+        <!--
+        COMMENT:
+        Consider explicitly defining the terms "remote client" and "local/server-side client".
+        By saying implementations are allowed to distinguish between them, the spec is implicitly
+        ack'ing the distinction anyway.  More on this later re: the handling of meta channels.
+        -->
+    </dd>
+    <dt>server</dt>
+    <dd>
+        An application program that accepts communications from clients.<br/>
+        A HTTP server accepts TCP/IP connections in order to service HTTP requests by
+        sending back HTTP responses.<br/>
+        A Bayeux server accepts and responds to the message exchanges initiated by a Bayeux client.
+    </dd>
+    <dt>request</dt>
+    <dd>
+        An HTTP request message as defined by section 5 of RFC 2616.
+    </dd>
+    <dt>response</dt>
+    <dd>
+        A HTTP response message as defined by section 6 of RFC 2616.
+    </dd>
+    <dt>message</dt>
+    <dd>
+        A message is a JSON encoded object exchanged between client and server for the
+        purpose of implementing the Bayeux protocol as defined by sections 3, 4 and 5.
+    </dd>
+    <dt>event</dt>
+    <dd>
+        Application specific data that is sent over the Bayeux protocol
+    </dd>
+    <dt>envelope</dt>
+    <dd>
+        The transport specific message format that wraps a standard Bayeux message.
+    </dd>
+    <dt>channel</dt>
+    <dd>
+        A named destination and/or source of events.<br/>
+        Events are published to channels and subscribers to channels receive the published events.
+    </dd>
+    <dt>connection</dt>
+    <dd>
+        A communication link that is established either permanently
+        or transiently, for the purposes of messages exchange.<br/>
+        A client is connected if a link is established with the server,
+        over which asynchronous events can be received.
+    </dd>
+    <dt>JSON</dt>
+    <dd>
+        JavaScript Object Notation (JSON) is a lightweight data-interchange format.<br/>
+        It is easy for humans to read and write. It is easy for machines to parse
+        and generate. It is based on a subset of the JavaScript Programming
+        Language, Standard ECMA-262 3rd Edition - December 1999.<br/>
+        JSON is described at <a href="http://www.json.org/">http://www.json.org/</a>.
+    </dd>
+</dl>
+
+<h2 class="clause">1.4. Overall Operation</h2>
+
+<h3 class="clause">1.4.1. HTTP Transport</h3>
+
+<p>
+    The HTTP protocol is a request/response protocol. A client sends a request to
+    the server in the form of a request method, URI, and protocol version, followed
+    by a MIME-like message containing request modifiers, client information, and
+    optional body content over a connection with a server. The server responds with
+    a status line, including the message's protocol version and a success or error
+    code, followed by a MIME-like message containing server information, entity
+    metainformation, and possible entity-body content.
+</p>
+
+<p>
+    The server may not initiate a connection with a client nor send an unrequested
+    response to the client, thus asynchronous events cannot be delivered from
+    server to client unless a previously issued request exists. In order to allow
+    two way asynchronous communication, Bayeux supports the use of multiple HTTP
+    connections between a client and server, so that previously issued requests are
+    available to transport server to client messages.
+</p>
+
+<p>
+    The recommendation of section 8.1.4 of RFC 2616 is that a single client
+    SHOULD NOT maintain more than 2 connection with any server, thus the Bayeux
+    protocol MUST NOT require any more than 2 HTTP requests to be simultaneously
+    handled by a server in order to handle all application (Bayeux based or
+    otherwise) requests from a client.
+</p>
+
+<h3 class="clause">1.4.2. Non HTTP Transports</h3>
+<!--
+	FIXME: we are currently silent on some important points:
+		1.) must conforming servers which don't use HTTP *also* support one or
+		more of the HTTP-based mechanisms?
+		2.) must conforming servers that aren't HTTP-based support plain-text
+		payloads?
+-->
+<p>
+    While HTTP is the predominant transport protocol used on the internet, it is
+    not intended that it will be the only transport for Bayeux. Other transports
+    that support a request/response paradigm may be used. However this document
+    assumes HTTP for reasons of clarity. When non-HTTP connection-level
+    transport mechanisms are employed, conforming Bayeux servers and clients MUST
+    still conform to the semantics of the JSON encoded messages outlined in this document.
+</p>
+
+<p>
+    Several of the "transport types" described in this document are distinguished
+    primarily by how they wrap messages for delivery over HTTP and the sequence
+    and content of the HTTP connections initiated by clients. While this may seem
+    like a set of implementation concerns to observant readers, the difficulties of
+    creating interoperable implementations without specifying these semantics fully
+    is a primary motivation for the development of this specification.<br/>
+    Were the deployed universe of servers and clients more flexible, it may not
+    have been necessary to develop Bayeux.
+</p>
+
+<p>
+    Regardless, care has been taken in the development of this specification to
+    ensure that future clients and servers which implement differing
+    connection-level strategies and encodings may still evolve and continue to be
+    conforming Bayeux implementations so long as they implement the JSON-based
+    public/subscribe semantics outlined herein.
+</p>
+
+<p class="note">
+    The rest of this document speaks as though HTTP will be used for message transport.
+</p>
+
+<h3 class="clause">1.4.3. Javascript</h3>
+
+<p>
+    Bayeux clients implemented in JavaScript that run within the security
+    framework of a browser MUST adhere to the restrictions imposed
+    by the browser, such as the <a href="http://en.wikipedia.org/wiki/Same_origin_policy">same origin policy</a>
+    or the <a href="http://www.w3.org/TR/access-control/">CORS</a> specification,
+    or the threading model.<br/>
+    These restrictions are normally enforced by the browser itself, but nonetheless
+    the client implementation must be aware of these restrictions and adhere to them.
+</p>
+<p>
+    Bayeux clients implemented in JavaScript but not running within a browser MAY
+    relax the restrictions imposed by browsers.
+</p>
+
+<h3 class="clause">1.4.4. Client to Server event delivery</h3>
+
+<p>
+    A Bayeux event is sent from the client to the server via a HTTP request
+    initiated by a client and transmitted to the origin server via a chain of
+    zero or more intermediaries (proxy, gateway or tunnel):
+</p>
+<pre class="example">
+BC ---------- U ---------- P ------------ O ---------- BS
+ | --M0(E)--&gt; |            |              |            |
+ |            | ---HTTP request(M0(E))--&gt; |            |
+ |            |            |              | --M0(E)--&gt; |
+ |            |            |              | &lt;---M1---- |
+ |            | &lt;---HTTP response(M1)---- |            |
+ | &lt;---M1---  |            |              |            |
+ |            |            |              |            |
+</pre>
+<p>
+    The figure above represents a Bayeux event E encapsulated in a Bayeux message M0
+    being sent from a Bayeux client BC to a Bayeux server BS via a HTTP request
+    transmitted from a User Agent U to to an Origin server O via a proxy P. The
+    HTTP response contains another Bayeux message M1 that will at least contain the
+    protocol response to M0, but may contain other Bayeux events initiated on the
+    server or on other clients.
+</p>
+
+<h3 class="clause">1.4.5. Server to Client event delivery </h3>
+
+<p>
+    A Bayeux event is sent from the server to the client via a HTTP response to
+    a HTTP request sent in anticipation by a client and transmitted to an
+    origin server via a chain of zero or more intermediaries (proxy, gateway or
+    tunnel):
+</p>
+<pre class="example">
+BC ---------- U ---------- P ------------ O ---------- BS
+ | ---M0---&gt;  |            |              |            |
+ |            | --- HTTP request(M0) ---&gt; |            |
+ |            |            |              | ----M0---&gt; |
+ ~            ~            ~              ~            ~ wait
+ |            |            |              | &lt;--M1(E)-- |
+ |            | &lt;--HTTP response(M1(E))-- |            |
+ | &lt;--M1(E)-- |            |              |            |
+ ~            ~            ~              ~            ~
+</pre>
+
+<p>
+    The figure above represents a Bayeux message M0 being sent from a Bayeux client
+    BC to a Bayeux server BS via a HTTP request transmitted from a User Agent U to
+    to an Origin server O via a proxy P. The message M0 is sent in anticipation of
+    a Bayeux event to be delivered from server to client and the Bayeux server
+    waits for such an event before sending a response. A Bayeux event E is shown
+    being delivered via Bayeux message M1 in the HTTP response. M1 may contain
+    zero, one or more Bayeux events destined for the Bayeux client.
+</p>
+
+<p>
+    The transprt used to send events from the server to the client may terminate
+    the HTTP response (which does not imply that the connection is closed) after
+    delivery of M1 or use techniques to leave the HTTP response uncompleted and
+    stream additional messages to the client.
+</p>
+
+<h4 class="clause">1.4.5.i Polling transports</h4>
+
+<p>
+    Polling transports will always terminate the HTTP response after sending all
+    available Bayeux messages.
+</p>
+<pre class="example">
+BC ---------- U ---------- P ------------ O ---------- BS
+ | ---M0---&gt;  |            |              |            |
+ |            | --- HTTP request(M0) ---&gt; |            |
+ |            |            |              | ----M0---&gt; |
+ ~            ~            ~              ~            ~ wait
+ |            |            |              | &lt;--M1(E)-- |
+ |            | &lt;--HTTP response(M1(E))-- |            |
+ | &lt;--M1(E)-- |            |              |            |
+ | ---M2---&gt;  |            |              |            |
+ |            | --- HTTP request(M2) ---&gt; |            |
+ |            |            |              | ----M2---&gt; |
+ ~            ~            ~              ~            ~ wait
+</pre>
+<p>
+    On receipt of the HTTP response containing M1, the Bayeux client issues a new
+    Bayeux message M2 either immediately or after an interval in anticipation of
+    more events to be delivered from server to client.<br/>
+    Bayeux implementations MUST support a specific style of polling
+    transport called <em>long polling</em> (see sec 6.1).
+</p>
+
+<h4 class="clause">1.4.5.ii Streaming transports</h4>
+
+<p>
+    Some Bayeux transports use the <em>streaming technique</em> (also called the
+    <em>forever response</em>) that allows multiple messages to be sent within the
+    same HTTP response:
+</p>
+<pre class="example">
+BC ---------- U ---------- P ------------ O ---------- BS
+ | ---M0---&gt;  |            |              |            |
+ |            | --- HTTP request(M0) ---&gt; |            |
+ |            |            |              | ----M0---&gt; |
+ ~            ~            ~              ~            ~ wait
+ |            |            |              | &lt;--M1(E0)- |
+ |            | &lt;--HTTP response(M1(E0))- |            |
+ | &lt;--M1(E0)- |            |              |            |
+ ~            ~            ~              ~            ~ wait
+ |            |            |              | &lt;--M1(E1)- |
+ |            | &lt;----(M1(E1))------------ |            |
+ | &lt;--M1(E1)- |            |              |            |
+ ~            ~            ~              ~            ~ wait
+</pre>
+<p>
+    Streaming techniques avoid the latency and extra messaging of anticipatory
+    requests, but are subject to the implementation of user agents and proxies as they
+    requires incomplete HTTP responses to be delivered to the Bayeux client.
+</p>
+
+<h3 class="clause">1.4.6. Two connection operation</h3>
+
+<p>
+    In order to achieve bidirectional communication, a Bayeux client uses 2
+    HTTP connections (see section 1.4.1) to a Bayeux server so that both server to client and
+    client to server messaging may occur asynchronously:
+</p>
+<pre class="example">
+BC ---------- U ---------- P ------------ O ---------- BS
+ | ---M0---&gt;  |            |              |            |
+ |            | ------ req0(M0) --------&gt; |            |
+ |            |            |              | ----M0---&gt; |
+ ~            ~            ~              ~            ~ wait
+ | --M1(E1)-&gt; |            |              |            |
+ |            | ----- req1(M1(E1))------&gt; |            |
+ |            |            |              | --M1(E1)-&gt; |
+ |            |            |              | &lt;---M2---- |
+ |            | &lt;---- resp1(M2)---------- |            |
+ | &lt;---M2---  |            |              |            |
+ ~            ~            ~              ~            ~ wait
+ |            |            |              | &lt;-M3(E2)-- |
+ |            | &lt;-----resp2(M3(E2))------ |            |
+ | &lt;-M3(E2)-- |            |              |            |
+ | ---M4---&gt;  |            |              |            |
+ |            | ------req3(M4)----------&gt; |            |
+ |            |            |              | ----M4---&gt; |
+ ~            ~            ~              ~            ~ wait
+</pre>
+<p>
+    HTTP requests req0 and req1 are sent on different TCP/IP connections, so that
+    the response to req1 may be sent before the response to req0. Implementations
+    MUST control HTTP pipelining so that req1 does not get queued behind req0 and
+    thus enforce an ordering of responses.
+</p>
+
+<h3 class="clause">1.4.7. Connection Negotiation</h3>
+
+<p>
+    Bayeux connections are negotiated between client and server with handshake
+    messages that allow the connection type, authentication and other parameters to
+    be agreed upon between the client and the server.
+</p>
+<pre class="example">
+BC ----------------------------------------- BS
+ | ------------------ handshake request ---&gt; |
+ | &lt;---- handshake response ---------------- |
+ | -------------------- connect request ---&gt; |
+ ~                                           ~ wait
+ | &lt;------ connect response ---------------- |
+ </pre>
+<p>
+    Connection negotiation may be iterative and several handshake messages may be
+    exchanged before a successful connection is obtained. Servers may also request
+    connection renegotiation by sending an unsuccessful connect response with
+    advice to reconnect with a handshake message.
+</p>
+<pre class="example">
+BC ----------------------------------------- BS
+ | ------------------ handshake request ---&gt; |
+ | &lt;-- unsuccessful handshake response ----- |
+ | ------------------ handshake request ---&gt; |
+ | &lt;-- successful handshake response ------- |
+ | -------------------- connect request ---&gt; |
+ ~                                           ~ wait
+ | &lt;------ connect response ---------------- |
+ | -------------------- connect request ---&gt; |
+ | &lt;---- unsucessful connect response ------ |
+ | ------------------ handshake request ---&gt; |
+ | &lt;-- successful handshake response ------- |
+ | -------------------- connect request ---&gt; |
+ ~                                           ~ wait
+ | &lt;------ connect response ---------------- |
+ </pre>
+
+
+<h3 class="clause">1.4.8. Unconnected operation</h3>
+
+<p>
+    OPTIONALLY, messages can be sent without a prior handshake (see 5.1 Publish event messages).
+</p>
+<pre class="example">
+BC ----------------------------------------- BS
+ | ------------------- message request ----&gt; |
+ | &lt;---- message response ------------------ |
+</pre>
+<p>
+    This pattern is often useful when implementing non-browser clients for Bayeux
+    servers. These clients often simply wish to address messages to other clients
+    which the Bayeux server may be servicing, but do not wish to listen for events
+    themselves.
+</p>
+
+<h2 class="clause">1.5 State Tables</h2>
+
+<h3 class="clause">1.5.1 Client State</h3>
+<pre class="example">
+   -------------++------------+-------------+------------+------------
+   State/Event  || handshake  | Timeout     | Successful | Disconnect
+                ||  request   |             |   connect  |  request
+                ||   sent     |             |  response  |   sent
+   -------------++------------+-------------+----------- +------------
+   UNCONNECTED  || CONNECTING | UNCONNECTED |            |
+   CONNECTING   ||            | UNCONNECTED | CONNECTED  | UNCONNECTED
+   CONNECTED    ||            | UNCONNECTED |            | UNCONNECTED
+   -------------++------------+-------------+------------+------------
+</pre>
+
+

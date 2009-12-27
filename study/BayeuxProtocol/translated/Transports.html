@@ -1,0 +1,81 @@
+<h1 class="clause">6. Transports</h1>
+
+<h2 class="clause">6.1. long-polling</h2>
+<p>
+    "Long-polling" is a polling transport that attempts to minimize both latency in server-client message delivery, and the
+    processing/network resources required for the connection. In "traditional" polling, servers send and terminate responses to
+    requests immediately, even when there are no events to deliver, and worst-case latency is the polling delay between each
+    client request.<br/>
+    Long-polling server implementations attempt to hold open each request until there are events to deliver;
+    the goal is to always have a pending request available to use for delivering events as they occur, thereby minimizing
+    the latency in message delivery.<br/>
+    Increased server load and resource starvation are addressed by using the reconnect and
+    interval advice fields to throttle clients, which in the worst-case degenerate to traditional polling behaviour.
+</p>
+
+<h3 class="clause">6.1.1 long-polling request messages</h3>
+<p>
+    Messages SHOULD be sent to the server as the body of an <em>application/json</em>
+    HTTP POST request.<br/>
+    Alternatively, messages MAY be sent to the server as the 'message' parameter of a
+    application/x-www-form-urlencoded encoded POST request.<br/>
+    If sent as form encoded, the Bayeux messages are sent as the "message" parameter in one of
+    the following forms as:
+</p>
+<ul>
+    <li>Single valued and contain a single Bayeux message</li>
+    <li>Single valued and contain an array of Bayeux message</li>
+    <li>Multi valued and contain a several individual Bayeux message</li>
+    <li>Multi valued and contain a several arrays of Bayeux message</li>
+    <li>Multi valued and contain a mix of individual Bayeux messages and arrays of Bayeux message</li>
+</ul>
+
+<h3 class="clause">6.1.2 long-polling response messages</h3>
+
+<p>
+    Messages SHOULD be sent to the client as unencapsulated body content of a
+    HTTP POST response with content type <em>application/json</em>.
+</p>
+<p>
+    A long-polling response message may contain an advice field containing transport-specific
+    fields to indicate the mode of operation of the transport.<br/>
+    For the long-polling transport, the advice field MAY contain the following fields:
+</p>
+<dl>
+    <dt>timeout</dt>
+    <dd>the number of milliseconds the server will hold the long poll request</dd>
+    <dt>interval</dt>
+    <dd>the number of milliseconds the client SHOULD wait before issuing another long poll request</dd>
+</dl>
+
+<h2 class="clause">6.2. callback-polling</h2>
+
+<h3 class="clause">6.2.1 callback-polling request messages</h3>
+
+<p>
+    Messages SHOULD be sent to the server as the 'message' parameter of a url encoded
+    HTTP GET request.
+</p>
+
+<h3 class="clause">6.2.2 callback-polling response messages</h3>
+
+<p>
+    Responses are sent wrapped in a JavaScript callback in order to facilitate delivery.<br/>
+    As specified by the JSON-P pseudo-protocol, the name of the callback to be triggered
+    is passed to the server via the <em>jsonp</em> HTTP GET parameter.<br/>
+    In the absence of such a parameter, the name of the callback defaults to <em>jsonpcallback</em>.<br/>
+    The called function will be passed a JSON encoded array of Bayeux messages.
+</p>
+
+<p>
+    A callback-polling response message may contain an advice field containing transport-specific
+    fields to indicate the mode of operation of the transport.<br/>
+    For the callback-polling transport, the advice field MAY contain the following fields:
+</p>
+<dl>
+    <dt>timeout</dt>
+    <dd>the number of milliseconds the server will hold the long poll request</dd>
+    <dt>interval</dt>
+    <dd>the number of milliseconds the client SHOULD wait before issuing another long poll request</dd>
+</dl>
+
