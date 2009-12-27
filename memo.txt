@@ -446,6 +446,54 @@ __init__を書き換えることになる。
 
 serverにHandlerインスタンスを複数保持している必要がある。
 
-
 response headerを生成してなかった。
+Transportにwriteしてなかった。
+-- CometHandlerはHTTPHandler持つ必要がある。(HTTPを理解するために)
+-- CometHandlerはタイミングしかあずかり知らない。
+
+
+まずはBayeuxにでてくるのChannelっぽいものを実装しよう
+Channels are identified by names that are styled as the absolute path
+component of a URI without parameters as defined by RFC2396. 
+
+
+
+/meta
+はだるいなぁ。
+
+[
+  {
+    "channel": "/some/name",
+    "clientId": "83js73jsh29sjd92",
+    "data": { "myapp" : "specific data", value: 100 }
+  }
+]
+
+メッセージが連射されると、Requestがくる前にmessageをpublishする可能性があって、
+回避するためにはQueueingが必要になる。つまりそれはなんらかのsession管理をサーバ側で
+しないといけないことを意味する。
+
+QueuingするならXML-RPCのマルチリクエストみたいなことをしたくなる訳で、
+
+[
+  {
+    "channel": "/some/name",
+    "clientId": "83js73jsh29sjd92",
+    "data": { "myapp" : "specific data", value: 100 }
+  },
+  {
+    "channel": "/other/name",
+    "clientId": "73jsadw309eew558",
+    "data": { "myapp" : "specific data", value: 100 }
+  }
+]
+とかしたいわけだな。なので、payloadが配列になる。
+
+
+いくつかinsightがありそうなので、bayeuxの翻訳をやってから作業でもいいかもしれない。
+
+http://wiki.livedoor.jp/daffy1/d/Bayeux%20Protocol%CB%DD%CC%F5
+は途中で挫折している。
+
+
 
