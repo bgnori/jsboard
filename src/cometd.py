@@ -1,6 +1,7 @@
 #/usr/bin/python
 
 import StringIO
+import urllib
 import cgi
 
 from SocketServer import BaseServer, TCPServer
@@ -14,33 +15,34 @@ import simplejson
 __version__ = "0.1"
 
 
-class CometServer(WSGIServer):
-  application = None
-
-  def __init__(self, server_address, RequestHandlerClass):
+class CometServer(object):
+  def __init__(self, server_name, pub, sub, RequestHandlerClass):
     print 'CometServer:__init__'
-    BaseServer.__init__(self, server_address, RequestHandlerClass)
-    #self.socket = socket.socket(self.address_family,
-    #                            self.socket_type)
-    self.server_bind()
-    #self.server_activate()
+    self.RequestHandlerClass = RequestHandlerClass
     self.pendingHandlers = []
 
-  def set_app(self, app):
-    self.app = app
+    self.server_name = server_name
+    self.pub_app, self.pub_port= pub
+    self.sub_app, self.sub_port= sub
 
-  def get_app(self):
-    return self.app
+    self.pub_environ = {}
+    self.sub_environ = {}
+    self.setup_environ(self.pub_environ, self.pub_port)
+    self.setup_environ(self.sub_environ, self.sub_port)
+
+  def setup_environ(self, env, port):
+    # fomr WSGIServer
+    # Set up base environment
+    env['SERVER_NAME'] = self.server_name
+    env['GATEWAY_INTERFACE'] = 'CGI/1.1'
+    env['SERVER_PORT'] = str(port)
+    env['REMOTE_HOST']=''
+    env['CONTENT_LENGTH']=''
+    env['SCRIPT_NAME'] = ''
 
   def server_bind(self):
     """Override server_bind to store the server name."""
-    print 'CometServer::server_bind'
-    #TCPServer.server_bind(self)
-    #HTTPServer.server_bind(self)
-    self.server_name = 'localhost' # fake
-    self.server_port = '9999' # fake
-    self.setup_environ()
-    self.base_environ['server'] = self
+    pass
 
   def storeHandler(self, handler, path):
     print 'CometServer:storeHandler', handler, path
@@ -49,8 +51,25 @@ class CometServer(WSGIServer):
   def getHandlers(self, path):
     return self.pendingHandlers
 
-  def handle_request(self, request, client_address, protocol):
-    print 'CometServer:handle_request'
+  def handle_sub_request(self, request, client_address, protocol):
+    h, path, message = self._handle_request(request, 
+                                          self.sub_app,
+                                          self.sub_environ, 
+                                          client_address, protocol)
+    assert message is None
+    self.storeHandler(h, path)
+
+  def handle_pub_request(self, request, client_address, protocol):
+    h, path, message = self._handle_request(request, 
+                                        self.pub_app,
+                                        self.pub_environ,
+                                        client_address, protocol)
+    h.handle_response(path, message)
+    self.broadcast(path, message)
+  
+
+  def _handle_request(self, request, app, env, client_address, protocol):
+    print 'CometServer:_handle_request'
     h = self.RequestHandlerClass(request, client_address, self)
     h.rfile.seek(0)
     h.raw_requestline = h.rfile.readline()
@@ -61,39 +80,14 @@ class CometServer(WSGIServer):
     if not h.parse_request():
       print 'parse error'
       return 
-    path, message = h.handle_request(protocol)
-    print path, message
-    self.post_process_request(h, path, message)
+    path, message = h.handle_request(app, env, protocol)
+    return h, path, message
 
-  def post_process_request(self, h, path, message):
-    raise
-
-  def finish_request(self, request, client_address):
-      """Finish one request by instantiating RequestHandlerClass."""
-      raise
-      #self.RequestHandlerClass(request, client_address, self)
-
-  def handle_response(self, path, message):
-    '''Ugh!'''
+  def broadcast(self, path, message):
     for h in self.getHandlers(path):
       print h
       h.handle_response(path, message)
     self.pendingHandlers = [] #ugh!
-
-
-class PublishServer(CometServer):
-  def set_subscriber(self, subscriber):
-    self.subscriber = subscriber
-
-  def post_process_request(self, h, path, message):
-    h.handle_response(path, message)
-    self.subscriber.handle_response(path, message)
-
-class SubscribeServer(CometServer):
-  def post_process_request(self, h, path, message):
-    assert message is None
-    self.storeHandler(h, path)
-
 
 
 class SplittedHandler(SimpleHandler):
@@ -125,6 +119,43 @@ class CometHandler(WSGIRequestHandler):
     self.server = server
     self.httphandler = None
 
+  def get_environ(self, base_environ):
+    env = base_environ.copy()
+    env['SERVER_PROTOCOL'] = self.request_version
+    env['REQUEST_METHOD'] = self.command
+    if '?' in self.path:
+      path,query = self.path.split('?',1)
+    else:
+      path,query = self.path,''
+
+    env['PATH_INFO'] = urllib.unquote(path)
+    env['QUERY_STRING'] = query
+
+    host = self.address_string()
+    if host != self.client_address[0]:
+      env['REMOTE_HOST'] = host
+    env['REMOTE_ADDR'] = self.client_address[0]
+
+    if self.headers.typeheader is None:
+      env['CONTENT_TYPE'] = self.headers.type
+    else:
+      env['CONTENT_TYPE'] = self.headers.typeheader
+
+    length = self.headers.getheader('content-length')
+    if length:
+      env['CONTENT_LENGTH'] = length
+
+    for h in self.headers.headers:
+      k,v = h.split(':',1)
+      k=k.replace('-','_').upper(); v=v.strip()
+      if k in env:
+        continue                    # skip content length, type,etc.
+      if 'HTTP_'+k in env:
+        env['HTTP_'+k] += ','+v     # comma-separate multiple headers
+      else:
+        env['HTTP_'+k] = v
+    return env
+
   def close(self):
     pass
 
@@ -139,16 +170,16 @@ class CometHandler(WSGIRequestHandler):
     raise
     WSGIRequestHandler.handle(self)
   
-  def handle_request(self, protocol):
+  def handle_request(self, app, env, protocol):
     self.protocol = protocol
     print 'CometHandler:handle_request'
     server = self.server
-    app = server.get_app()
     self.rfile.seek(0) 
     print self.rfile.getvalue()
     print 'evoking app'
     h = SplittedHandler(
-            self.rfile, self.wfile, self.get_stderr(), self.get_environ()
+            self.rfile, self.wfile, self.get_stderr(), 
+            self.get_environ(env)
             )
     h.request_handler = self
     self.app_request, self.app_response = h.get_ready(app)
@@ -167,12 +198,11 @@ class CometHandler(WSGIRequestHandler):
 
 
 def make(publish, subscribe):
-  sub = SubscribeServer(('localhost', 3165), CometHandler) #ugh!
-  sub.set_app(subscribe)
+  server = CometServer('localhost', 
+                    (publish, 3124, ),#CometHandler)
+                    (subscribe, 3165, ), #CometHandler),
+                    CometHandler)
 
-  pub = PublishServer(('localhost', 3124), CometHandler) #ugh!
-  pub.set_subscriber(sub)
-  pub.set_app(publish)
 
   class Subscription(protocol.Protocol):
     def connectionLost(self, reason):
@@ -185,7 +215,7 @@ def make(publish, subscribe):
     def dataReceived(self, data):
       self.rfile.write(data) 
       peer = self.transport.getPeer()
-      sub.handle_request((self.rfile, self.wfile), peer, self)
+      server.handle_sub_request((self.rfile, self.wfile), peer, self)
   
     def sendData(self): 
       self.transport.write(self.wfile.getvalue())
@@ -206,7 +236,7 @@ def make(publish, subscribe):
     def dataReceived(self, data):
       self.rfile.write(data) #ugh!
       peer = self.transport.getPeer()
-      pub.handle_request((self.rfile, self.wfile), peer, self)
+      server.handle_pub_request((self.rfile, self.wfile), peer, self)
 
     def sendData(self): 
       self.transport.write(self.wfile.getvalue())

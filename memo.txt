@@ -604,7 +604,15 @@ CometServerの存在意義
 
 
 
+まずfakeを消す。-> done
+requestとresponseの分離にかなりの手間をかけた。
+->分離しないとserverの寿命がおかしなことになる。transportの関係上、request毎にサーバを生成するコードになってしまう。
 
+PublishServerとSubscribeServerが分離しているから面倒？
+現状ServerはHandlerもPeerも１つしかもてない。
+env等を渡すときに名前を変えれば１つにできるかも
+Handler側でget_environを変えないといけない。
+serverをsubclassするより、hanlderをsubclass化するほうが健全
 
 
 
