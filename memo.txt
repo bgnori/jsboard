@@ -498,15 +498,78 @@ http://wiki.livedoor.jp/daffy1/d/Bayeux%20Protocol%CB%DD%CC%F5
 
 順番としては, 
 - channel/pathの実装
+- sessionの実装
+-- queueingの実装(sessionに対して)
 - chat appliの実装(lobby, room, direct message)
-- queueingの実装
 かな。
 
 
 なんだろう、Bayeuxはclientをhandshakeで認証する方向で作られている。
 sessionを作る方向ではない？
 
+あすは6
+6.2. callback-polling
+と
+meta message
+かな。
 
+なんだろー。UDPみたいなconnectionlessなものを作りたいなぁ。
+
+messageをhandleする関数をCometAppと呼ぶ(WSGIのapplicationになぞらえて)
+routeとかのデザインも調べるべし。
+
+
+> なんだろー。UDPみたいなconnectionlessなものを作りたいなぁ。
+ということは、ChannelとMessageのみでできている。
+
+Messageを入れ子にして、そこに認証とかをつっこむ？
+clientにidを与えないと、messageを送り返せない。
+
+channel to channelで表現できないか？
+
+
+mapper
+/session/id=? <---> http req/res
+... life time?
+--> CometHandlerにmessageをQueueingする
+--> http handlerをCometHandleに追加する。
+-- ここはhttpの中身をみることができるので、cookieなりなんなり。
+-- 問題はajaxでcookieをつけるのはまともなことなのか？
+===== http://plugins.jquery.com/project/Cookie
+-- cookieをほかの部分と共用したい。つまりサイトとして。
+
+んー。反復による攻撃がいやだなぁ。
+step1. httpsでkeyをuserからもらう。
+step2. サーバがまとめてたくさんのchallegeを送る。(bulk)
+step3. clientはhttp requestを送るときに、challengeを一個えらんでkeyとhashしresponseを生成する。
+step4. clientは生成したresponseとchallengeのペアをcookieにセットして送信する。
+step5. サーバが検証する。
+一般的なsession管理からみるとover spec
+
+
+sha1とかの計算は重くないのか？
+cookieにする理由：urlに入れたくない.payloadに入れるのはOK
+送信のタイミングがやばくないか？
+- userの操作でページ遷移した場合
+
+
+- 内部のidをclientに公開する必要はないが、httpのsessionとmapする必要がある。
+
+route
+Channel <---> Channel
+
+appはChannelに貼り付ける。
+
+--- cookieの処理法
+ cookies = self.parseCookies(environment.get("HTTP_COOKIE", ""))
+    def parseCookies(self, s):
+        cookies = {}
+        for x in [t.strip() for t in s.replace(",", ":").split(":")]:
+            if x == "":
+                continue
+            key,value = x.split("=", 1)
+            cookies[key] = value
+        return cookies
 
 
 

@@ -11,9 +11,18 @@ import simplejson
 
 
 def publish(environ, start_response):
+  def parseCookies(s):
+    cookies = {}
+    for x in [t.strip() for t in s.replace(",", ":").split(":")]:
+      if x == "":
+        continue
+      key,value = x.split("=", 1)
+      cookies[key] = value
+    return cookies
   print 'publish'
   stdout = StringIO.StringIO()
   q = cgi.parse_qs(environ['QUERY_STRING'])
+  cookies = parseCookies(environ.get("HTTP_COOKIE", ""))
 
   def request():
     print 'publish(request)'
