@@ -573,6 +573,41 @@ appはChannelに貼り付ける。
 
 
 chat pyと分ける意味なし。
+-> 対応
+WSGIっぽくするの意味なし。
+publishは解体吸収?
+  
+  handleしたあと単にhttp
+  responseのhandlerを覚えておくだけじゃなくてsessionと結びつけて管理しないといけない。
+
+
+CometHandler(WSGIRequestHandler)の存在意義
+- protocolとhttp handlerの橋渡し。
+- responseをholdする
+- CometServerから呼び出される。
+
+SplittedHandler(SimpleHandler)の存在意義
+- wsgiのhandlerの機能を引っ張ってくる。 <- WSGIServerと使いたい。
+- publishかsubscribeかを隠蔽する。
+
+CometServerの存在意義
+- WSGIの規約にしたがったぽいものを作る。
+- http serverである。
+
+
+
+気づいたこと
+- 名前の対称性が壊れてる! CometServer <-> SplittedHandler/CometHandler(!!)
+- WSGIはいらないから、SplittedHandlerとCometServerは継承関係が疑問
+-- server_bindはなんか変なことに
+- session管理はserverに追加したい。
+
+
+
+
+
+
+
 
 
 
