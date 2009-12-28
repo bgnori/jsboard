@@ -1,12 +1,15 @@
 #/usr/bin/python
 
 import StringIO
+import cgi
 
 from SocketServer import BaseServer, TCPServer
 
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer
 from wsgiref.handlers import SimpleHandler
-from twisted.internet import protocol
+from twisted.internet import reactor, protocol
+
+import simplejson
 
 __version__ = "0.1"
 
@@ -213,4 +216,59 @@ def make(publish, subscribe):
       return Publication()
 
   return Publisher(), Subscriver()
+
+def publish(environ, start_response):
+  def parseCookies(s):
+    cookies = {}
+    for x in [t.strip() for t in s.replace(",", ":").split(":")]:
+      if x == "":
+        continue
+      key,value = x.split("=", 1)
+      cookies[key] = value
+    return cookies
+  print 'publish'
+  stdout = StringIO.StringIO()
+  q = cgi.parse_qs(environ['QUERY_STRING'])
+  cookies = parseCookies(environ.get("HTTP_COOKIE", ""))
+
+  def request():
+    print 'publish(request)'
+    message = q['message'][0]
+    print message
+    return '', message
+
+  def response(path, message):
+    print 'publish(response)'
+    value = {'status': True}
+    j = '%s(%s);'%(q['callback'][0], simplejson.dumps(value))
+    print >> stdout, j
+    start_response("200 OK", [('Content-Type','text/javascript')])
+    return [stdout.getvalue()]
+  return request, response
+
+
+def subscribe(environ, start_response):
+  print 'subscribe'
+  stdout = StringIO.StringIO()
+  q = cgi.parse_qs(environ['QUERY_STRING'])
+
+  def request():
+    print 'subscribe(request)'
+    return '', None
+  
+  def response(path, message):
+    print 'subscribe(response)'
+    value = {'message':message, 'who':'hogeo'}
+    j = '%s(%s);'%(q['callback'][0], simplejson.dumps(value))
+    print >> stdout, j
+    start_response("200 OK", [('Content-Type','text/javascript')])
+    return [stdout.getvalue()]
+  return request, response
+
+pub, sub = make(publish, subscribe)
+
+
+reactor.listenTCP(3165, sub)
+reactor.listenTCP(3124, pub)
+reactor.run()
 

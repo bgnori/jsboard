@@ -572,4 +572,9 @@ appはChannelに貼り付ける。
         return cookies
 
 
+chat pyと分ける意味なし。
+
+
+
+
 
