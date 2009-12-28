@@ -615,7 +615,8 @@ Handler側でget_environを変えないといけない。
 serverをsubclassするより、hanlderをsubclass化するほうが健全
 
 
-
+とりあえず終わった。
+- ajaxをPOST化
 
 
 

@@ -4,8 +4,6 @@ import StringIO
 import urllib
 import cgi
 
-from SocketServer import BaseServer, TCPServer
-
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer
 from wsgiref.handlers import SimpleHandler
 from twisted.internet import reactor, protocol
@@ -14,6 +12,15 @@ import simplejson
 
 __version__ = "0.1"
 
+
+def parseCookies(s):
+  cookies = {}
+  for x in [t.strip() for t in s.replace(",", ":").split(":")]:
+    if x == "":
+      continue
+    key,value = x.split("=", 1)
+    cookies[key] = value
+  return cookies
 
 class CometServer(object):
   def __init__(self, server_name, pub, sub, RequestHandlerClass):
@@ -39,10 +46,6 @@ class CometServer(object):
     env['REMOTE_HOST']=''
     env['CONTENT_LENGTH']=''
     env['SCRIPT_NAME'] = ''
-
-  def server_bind(self):
-    """Override server_bind to store the server name."""
-    pass
 
   def storeHandler(self, handler, path):
     print 'CometServer:storeHandler', handler, path
@@ -248,14 +251,6 @@ def make(publish, subscribe):
   return Publisher(), Subscriver()
 
 def publish(environ, start_response):
-  def parseCookies(s):
-    cookies = {}
-    for x in [t.strip() for t in s.replace(",", ":").split(":")]:
-      if x == "":
-        continue
-      key,value = x.split("=", 1)
-      cookies[key] = value
-    return cookies
   print 'publish'
   stdout = StringIO.StringIO()
   q = cgi.parse_qs(environ['QUERY_STRING'])
@@ -281,6 +276,7 @@ def subscribe(environ, start_response):
   print 'subscribe'
   stdout = StringIO.StringIO()
   q = cgi.parse_qs(environ['QUERY_STRING'])
+  cookies = parseCookies(environ.get("HTTP_COOKIE", ""))
 
   def request():
     print 'subscribe(request)'
