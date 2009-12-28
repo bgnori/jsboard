@@ -204,26 +204,6 @@ def make(publish, subscribe):
                     CometHandler)
 
 
-  class Subscription(protocol.Protocol):
-    def connectionLost(self, reason):
-      pass
-  
-    def connectionMade(self):
-      self.rfile = StringIO.StringIO()#'rb', self.rbufsize)
-      self.wfile = StringIO.StringIO()#'wb', self.wbufsize)
-  
-    def dataReceived(self, data):
-      self.rfile.write(data) 
-      peer = self.transport.getPeer()
-      server.handle_sub_request((self.rfile, self.wfile), peer, self)
-  
-    def sendData(self): 
-      self.transport.write(self.wfile.getvalue())
-  
-  class Subscriver(protocol.ServerFactory):
-    def buildProtocol(self, addr):
-      return Subscription()
-  
   class Publication(protocol.Protocol):
     def connectionLost(self, reason):
       pass
@@ -245,6 +225,26 @@ def make(publish, subscribe):
     def buildProtocol(self, addr):
       return Publication()
 
+  class Subscription(protocol.Protocol):
+    def connectionLost(self, reason):
+      pass
+  
+    def connectionMade(self):
+      self.rfile = StringIO.StringIO()#'rb', self.rbufsize)
+      self.wfile = StringIO.StringIO()#'wb', self.wbufsize)
+  
+    def dataReceived(self, data):
+      self.rfile.write(data) 
+      peer = self.transport.getPeer()
+      server.handle_sub_request((self.rfile, self.wfile), peer, self)
+  
+    def sendData(self): 
+      self.transport.write(self.wfile.getvalue())
+  
+  class Subscriver(protocol.ServerFactory):
+    def buildProtocol(self, addr):
+      return Subscription()
+  
   return Publisher(), Subscriver()
 
 def publish(environ, start_response):
