@@ -618,6 +618,68 @@ serverをsubclassするより、hanlderをsubclass化するほうが健全
 とりあえず終わった。
 - ajaxをPOST化
 
+エラーケースでrequestのhandlerを途中で抜ける場合に書きにくい。
+
+ajax側でPOST methodを指定したら、OPTIONSが飛んでくる！
+http://stackoverflow.com/questions/1099787/jquery-ajax-post-sending-options-as-requestmethod-in-firefox
+
+
+same origin policy抵触とのことだが？
+
+https://developer.mozilla.org/ja/AJAX/Getting_Started
+---
+第 2 引数は、リクエストを送るページの URLです。セキュリティ上の問題から、他のドメインのページを読むことはできません。つまり、すべてのページに対して同一のドメイン名を利用しないと、open()を呼び出したときに「権限エラー」を受け取ることになるということです。よくある落とし穴は、サイトにdomain.tld でアクセスしながら、www.domain.tld
+でページを読み込もうとすることです。 
+---
+んー。GETがOKでPOSTがだめなんて変すぎ。
+
+http://www.petefreitag.com/item/703.cfm
+- ヘッダを使えばsame origin policyに関して指示できる。
+
+
+file://とlocalhostで問題が起きている？
+-> yes.
+<script>でくっつけるのにPOSTは変
+ということで、当面はGET.
+- 容量で問題が起きたらなんか考える。
+- 検索エンジンからのrequestはrobots.txtで蹴る。
+
+
+正確には未知のサーバにいきなりPOSTするのはだめなので、preflight requestが行われる。
+https://developer.mozilla.org/Ja/HTTP_access_control#Preflighted_requests
+なので、sourceのhtmlとPOSTの対象を同じサーバに置くか、ほかのところからの
+POSTを受け付けるためにOPTIONSに対応するかの２択
+
+いずれにせよ、テストの手法を変えた方が無難だろう。
+
+reverse proxyを使って組み合わせるのが一番楽そう。
+:8080
+- static
+- non comet app
+- comet publish -> comet.api.backgammonbase.com:3165
+
+:3124 subscribe
+:3165 publish
+
+apacheを使う。deployでも使うだろうから。
+ -f file            : specify an alternate ServerConfigFile
+
+wsgi.inputが正しくとれない。
+dataReceivedで全部のデータがとれているわけではない。
+see /usr/lib64/python2.4/site-packages/twisted/web2/wsgi.py
+see /usr/lib64/python2.4/site-packages/twisted/web2/channel/http.py
+
+とりあえず、dataReceivedでbufferに書き込み、
+httpとしてContentがそろっているかどうかを出来合いのコードでチェックし、
+できていたらserver.hanlde_xxx_requestを呼ぶ用にする。
+
+そろっているかどうかのチェックがたくさん走って重いかもしれないが、とりあえずは気にしない。
+
+Transport Levelではすべてデータがきている。
+environを作ったときに何かがおかしい？
+
+bodyの部分だけが残るはずなのにheaderも残っているから変。
+seek関係とみた。
 
 
 

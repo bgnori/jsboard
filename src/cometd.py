@@ -82,7 +82,6 @@ class CometServer(object):
       return
     if not h.parse_request():
       print 'parse error'
-      return 
     path, message = h.handle_request(app, env, protocol)
     return h, path, message
 
@@ -96,8 +95,9 @@ class CometServer(object):
 class SplittedHandler(SimpleHandler):
   def get_ready(self, app):
     try:
-      print "SplittedHandler:get_ready"
       self.setup_environ()
+      print "SplittedHandler:get_ready", self.environ
+      print "SplittedHandler:get_ready", repr(self.stdin.getvalue())
       print "made setup_environ, calling app"
       a, b = app(self.environ, self.start_response)
       print a, b
@@ -177,7 +177,7 @@ class CometHandler(WSGIRequestHandler):
     self.protocol = protocol
     print 'CometHandler:handle_request'
     server = self.server
-    self.rfile.seek(0) 
+    #self.rfile.seek(0) 
     print self.rfile.getvalue()
     print 'evoking app'
     h = SplittedHandler(
@@ -206,49 +206,50 @@ def make(publish, subscribe):
                     (subscribe, 3165, ), #CometHandler),
                     CometHandler)
 
-
-  class Publication(protocol.Protocol):
+  class HTTPChannel(protocol.Protocol):
     def connectionLost(self, reason):
       pass
-  
     def connectionMade(self):
-      print 'Publication::connectionMade'
       self.rfile = StringIO.StringIO()#'rb', self.rbufsize)
       self.wfile = StringIO.StringIO()#'wb', self.wbufsize)
-  
-    def dataReceived(self, data):
-      self.rfile.write(data) #ugh!
-      peer = self.transport.getPeer()
-      server.handle_pub_request((self.rfile, self.wfile), peer, self)
 
     def sendData(self): 
       self.transport.write(self.wfile.getvalue())
+
+    def dataReceived(self, data):
+      self.rfile.write(data)
+      if self.isRequestReady():
+        self.onRequestReady()
+
+    def isRequestReady(self):
+      v = self.rfile.getvalue()
+      if '\r\n\r\n' in v:
+        print 'isRequestReady', repr(v)
+        return True #ugh!
+      return False
+
+    def onRequestReady(self):
+      raise
+
+  class Publication(HTTPChannel):
+    def onRequestReady(self):
+      peer = self.transport.getPeer()
+      server.handle_pub_request((self.rfile, self.wfile), peer, self)
     
   class Publisher(protocol.ServerFactory):
     def buildProtocol(self, addr):
       return Publication()
 
-  class Subscription(protocol.Protocol):
-    def connectionLost(self, reason):
-      pass
-  
-    def connectionMade(self):
-      self.rfile = StringIO.StringIO()#'rb', self.rbufsize)
-      self.wfile = StringIO.StringIO()#'wb', self.wbufsize)
-  
-    def dataReceived(self, data):
-      self.rfile.write(data) 
+  class Subscription(HTTPChannel):
+    def onRequestReady(self):
       peer = self.transport.getPeer()
       server.handle_sub_request((self.rfile, self.wfile), peer, self)
   
-    def sendData(self): 
-      self.transport.write(self.wfile.getvalue())
-  
-  class Subscriver(protocol.ServerFactory):
+  class Subscriber(protocol.ServerFactory):
     def buildProtocol(self, addr):
       return Subscription()
   
-  return Publisher(), Subscriver()
+  return Publisher(), Subscriber()
 
 def publish(environ, start_response):
   print 'publish'
@@ -258,15 +259,25 @@ def publish(environ, start_response):
 
   def request():
     print 'publish(request)'
-    message = q['message'][0]
-    print message
-    return '', message
+    method = environ['REQUEST_METHOD']
+    print method
+    assert method == 'POST'
+    length = int(environ.get('CONTENT_LENGTH', 0))
+    input = environ['wsgi.input']
+    raw = input.read(length)
+    print 'wsgi.input:', repr(raw)
+    data = cgi.parse_qs(raw)
+    print 'data:', data
+    message = data['message'][0] or ''
+    channel = data['channel'][0] or ''
+    return channel, message
+
 
   def response(path, message):
     print 'publish(response)'
-    value = {'status': True}
-    j = '%s(%s);'%(q['callback'][0], simplejson.dumps(value))
-    print >> stdout, j
+    #value = {'status': True}
+    #j = '%s(%s);'%(q['callback'][0], simplejson.dumps(value))
+    print >> stdout, ''
     start_response("200 OK", [('Content-Type','text/javascript')])
     return [stdout.getvalue()]
   return request, response
