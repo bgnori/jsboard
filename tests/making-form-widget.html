@@ -32,7 +32,10 @@ google.load("jqueryui", "1.5.3",  {uncompressed:true});
   $.fn.chatForm = function(conn, room) {
     var c;
     var t;
-    $.extend(conn, {room:count});
+    var n;
+    n = {};
+    n[room] =count;
+    $.extend(conn, n);
     count += 1;
     $(this).append($(template));
     debug(this);
@@ -49,6 +52,7 @@ $(document).ready(function(){
   $('#target').chatForm(conn, 'room A');
   $('#target').chatForm(conn, 'room B');
   $('#target').chatForm(conn, 'room C');
+  console.log(conn);
 });
 
 </script>
