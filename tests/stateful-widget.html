@@ -1,0 +1,82 @@
+<html>
+<head>
+<title>jQuery Plugin test</sample>
+<!--
+  Copyright 2009 Noriyuki Hosaka bgnori@gmail.com
+  -->
+
+<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+<script type="text/javascript">
+google.load("jquery", "1.3.1");
+google.load("jqueryui", "1.5.3",  {uncompressed:true});
+</script>
+
+<script type="text/javascript">
+
+(function($) {
+  var count=0;
+  var color = ['red', 'green', 'black', 'brown'];
+  $.fn.mydiv = function() {
+    $(this).append($(
+      '<div style="background-color:' +
+      color[count] + ';">' +
+      'this is widget' +
+      '</div>'));
+    count +=1;
+  };
+})(jQuery);
+
+(function($) {
+  $.fn.counter = function() {
+    var t;
+    $(this).append($('<input type="text" />'))
+    $(this).append($('<input type="submit" />'))
+    t = this.find('[type=text]');
+    $(t).val('1');
+    t = this.find('[type=submit]');
+    t.val('up');
+    this.submit(function(){
+      var y;
+      var x;
+      y = $(this).find('[type=text]');
+      x = $(y).val();
+      $(y).val(x+1);
+      return false;
+    });
+    this.(function(){
+      var y;
+      var x;
+      y = $(this).find('[type=text]');
+      x = $(y).val();
+      $(y).val(x+1);
+      return false;
+    });
+  };
+})(jQuery);
+
+
+$(document).ready(function(){
+  $('#target').mydiv();
+  $('#target').mydiv();
+  $('#target').mydiv();
+  $('#target').mydiv();
+
+  $("form").counter();
+});
+
+</script>
+
+<body>
+<div id="target" style='background-color: blue; color: white;'>
+  target div
+</div>
+
+<form>
+</form>
+
+<form>
+</form>
+
+</body>
+</html>
+

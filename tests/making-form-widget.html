@@ -1,0 +1,60 @@
+<html>
+<head>
+<title>jQuery Plugin test</sample>
+<!--
+  Copyright 2009 Noriyuki Hosaka bgnori@gmail.com
+  -->
+
+<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+<script type="text/javascript">
+google.load("jquery", "1.3.1");
+google.load("jqueryui", "1.5.3",  {uncompressed:true});
+</script>
+
+<script type="text/javascript">
+
+
+(function($) {
+  function debug(msg){
+    console.log(msg);
+  };
+  var count = 0;
+  var template = '<div class="container"> container' +
+                   '<div>' + 
+                     '<div class="roomName">roomName</div>' +
+                     '<div class="content">content</div>' +
+                   '</div>' + 
+                   '<form>' +
+                     '<input type="text" />' + 
+                     '<input type="submit" />' +
+                   '</form>' +
+                 '</div>';
+  $.fn.chatForm = function(conn, room) {
+    var c;
+    var t;
+    $.extend(conn, {room:count});
+    count += 1;
+    $(this).append($(template));
+    debug(this);
+    c = $(this).find(":last-child");
+    debug(c);
+    t = $(c).find('.roomName');
+    debug(t);
+    t.text(room);
+  };
+})(jQuery);
+
+$(document).ready(function(){
+  var conn = { memo:'this is connection mock'};
+  $('#target').chatForm(conn, 'room A');
+  $('#target').chatForm(conn, 'room B');
+  $('#target').chatForm(conn, 'room C');
+});
+
+</script>
+<div id="target">
+This is target.
+</div>
+
+</body>
+</html>

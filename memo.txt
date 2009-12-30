@@ -682,5 +682,24 @@ bodyの部分だけが残るはずなのにheaderも残っているから変。
 seek関係とみた。
 
 
+channelとかsessionの実装
+
+channelとurlの関係
+http://comet.backgammonbase.test:8080/channel
+
+channelをsubscribeする
+channelをunsubscribeする
+channelの一覧を取得する
+channelを複数同時表示する。
+channelの表示を動的に追加する。
+
+なーんか再帰的にできるといいなぁ。
+
+まずはhtml上でのidをうまく振ること。
+再帰的な操作を用意すること
+
+chatのウィジット化
+まずはdivで矩形を出すやつを作る。
+
 
 

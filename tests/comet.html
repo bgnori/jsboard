@@ -32,16 +32,35 @@ function update(){
 
 $(document).ready(function(){
   $("form").submit(function(){
-    d = $('#message').val()
+    d = $('#channel').val()
     $.ajax({
       url: "http://comet.backgammonbase.test:8080/publish", //:3124",
       type: "POST", 
       cache : false,
-      //contentType: "application/x-www-form-urlencoded",
+      contentType: "application/x-www-form-urlencoded",
       data : {message:d, channel:'hoge'},
       timeout: 60*1000,
       success : function (data, dataType){
         $('#message').val('');
+      },
+      error : function(){
+        alert("error");
+      },
+    });
+    return false;
+  });
+
+  $("#message").submit(function(){
+    d = $('#content').val()
+    $.ajax({
+      url: "http://comet.backgammonbase.test:8080/publish", //:3124",
+      type: "POST", 
+      cache : false,
+      contentType: "application/x-www-form-urlencoded",
+      data : {message:d, channel:'hoge'},
+      timeout: 60*1000,
+      success : function (data, dataType){
+        $('#content').val('');
       },
       error : function(){
         alert("error");
@@ -55,15 +74,27 @@ $(document).ready(function(){
 </script>
 
 </head>
-<div id="chat">
-<div> 0 </div>
+<div id="channelWindow">
+<div id="channel">
+</div>
+<form > 
+<input type="text" id="selection" />
+<input type="submit" />
+<input type="reset"  />
+</form>
 </div>
 
-<form > 
+
+<div id="chatWindow">
+<div id="timeline">
+</div>
+<form id="#messageForm"> 
 <input type="text" id="message" />
 <input type="submit" />
 <input type="reset"  />
 </form>
+</div>
 <body>
 </body>
 </html>
+
