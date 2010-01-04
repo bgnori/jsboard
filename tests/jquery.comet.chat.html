@@ -1,0 +1,44 @@
+<html>
+<head>
+<title>comet chat Plugin test</sample>
+<!--
+  Copyright 2009 Noriyuki Hosaka bgnori@gmail.com
+  -->
+
+<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+<script type="text/javascript">
+google.load("jquery", "1.3.1");
+google.load("jqueryui", "1.5.3",  {uncompressed:true});
+</script>
+
+<script type="text/javascript" src="http://src.backgammonbase.test:8080/jquery.comet.hub.js"></script>
+<script type="text/javascript" src="http://src.backgammonbase.test:8080/jquery.comet.chat.js"></script>
+
+<script type="text/javascript">
+function debug(msg){
+  console.log(msg);
+};
+$(document).ready(function(){
+  debug('ready');
+  hub.init("comet.backgammonbase.test", 3165, 8080);
+  $('#target').chatForm('/A');
+});
+
+</script>
+<script type='text/css'>
+.comet-chat-content {
+  color: red;
+  background: #eff2ff;
+}
+
+</script>
+</head>
+
+<body>
+<div id="target">
+This is target.
+</div>
+
+</body>
+</html>
+

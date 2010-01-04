@@ -703,3 +703,5 @@ chatのウィジット化
 
 
 
+空データ+/channel/?action=subscribe v.s. /channel + {action:'subscribe'} v.s.
+/ + {channel:channel, action:'subscribe'}
