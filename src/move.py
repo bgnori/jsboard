@@ -82,5 +82,3 @@ if __name__ == '__main__':
   httpd = make_server('', 8000, my_app);
   httpd.serve_forever();
 
-
-

@@ -703,5 +703,48 @@ chatのウィジット化
 
 
 
-空データ+/channel/?action=subscribe v.s. /channel + {action:'subscribe'} v.s.
-/ + {channel:channel, action:'subscribe'}
+a) 空データ+/channel/?action=subscribe 
+ merit browserでテストできる。(postも)
+ demerit appli側でのurl設計が制限される。
+b) /channel + {action:'subscribe'} 
+ merit browserでテストできる。(getのみ)
+ demerit url設計が比較的制限されない。
+
+c) / + {channel:channel, action:'subscribe'}
+ merit: シンプル
+ demerit appli側でのurl設計が制限されない。
+
+視点)
+jsがサポートされなブラウザでの表示と一貫性を持たせやすいのはどれか？
+a)
+
+
+とりあえずa)でいってみよう。
+
+    RewriteCond %{REQUEST_METHOD} =POST
+    RewriteRule (.+) http://127.0.0.1:3124/$1 [P]
+    ProxyPassReverse / http://127.0.0.1:3124/
+
+
+cometdの作りを変える必要がある。
+- broadcast/listen系 (いままでのsubscribe)
+- command系(いままのでpublish)
+
+
+channelの購読関係の作りがアレゲだなぁ。
+- session(cookie)からhandler検索できるようにしないといけない。
+-- sessionとhandlerは1:1だが、handlerがいないときがある。
+- channelとhandlerはn:1
+--> channelを購読すると実はsessionに渡されるべき。
+
+ということで、sessionの実装が必要だ。
+
+いつsessionを与えるかが問題だが、loginさせる必要が出てくる。
+Login -> set cookie -> ウマー。
+(post)
+
+command=loginかぁ
+んー。commandのsplit handlerは作りが微妙な気がする。
+return valueを見てhandle_commandでがんばることが多い。
+このへんの書き直しはsessionを実装してから。
+

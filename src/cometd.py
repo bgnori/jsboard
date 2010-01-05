@@ -54,7 +54,7 @@ class CometServer(object):
   def getHandlers(self, path):
     return self.pendingHandlers
 
-  def handle_sub_request(self, request, client_address, protocol):
+  def handle_broadbast(self, request, client_address, protocol):
     h, path, message = self._handle_request(request, 
                                           self.sub_app,
                                           self.sub_environ, 
@@ -62,13 +62,16 @@ class CometServer(object):
     assert message is None
     self.storeHandler(h, path)
 
-  def handle_pub_request(self, request, client_address, protocol):
+  def handle_command(self, request, client_address, protocol):
     h, path, message = self._handle_request(request, 
                                         self.pub_app,
                                         self.pub_environ,
                                         client_address, protocol)
-    h.handle_response(path, message)
-    self.broadcast(path, message)
+    if message:
+      h.handle_response(path, message)
+      self.broadcast(path, message)
+    else:
+      self.storeHandler(h, path)
   
 
   def _handle_request(self, request, app, env, client_address, protocol):
@@ -200,10 +203,10 @@ class CometHandler(WSGIRequestHandler):
     self.protocol.sendData()
 
 
-def make(publish, subscribe):
+def make(command, broadcast):
   server = CometServer('localhost', 
-                    (publish, 3124, ),#CometHandler)
-                    (subscribe, 3165, ), #CometHandler),
+                    (command, 3124, ),#CometHandler)
+                    (broadcast, 3165, ), #CometHandler),
                     CometHandler)
 
   class HTTPChannel(protocol.Protocol):
@@ -231,50 +234,68 @@ def make(publish, subscribe):
     def onRequestReady(self):
       raise
 
-  class Publication(HTTPChannel):
+  class Command(HTTPChannel):
     def onRequestReady(self):
       peer = self.transport.getPeer()
-      server.handle_pub_request((self.rfile, self.wfile), peer, self)
+      server.handle_command((self.rfile, self.wfile), peer, self)
     
-  class Publisher(protocol.ServerFactory):
+  class commander(protocol.ServerFactory):
     def buildProtocol(self, addr):
-      return Publication()
+      return Command()
 
-  class Subscription(HTTPChannel):
+  class BroadCasting(HTTPChannel):
     def onRequestReady(self):
       peer = self.transport.getPeer()
-      server.handle_sub_request((self.rfile, self.wfile), peer, self)
+      server.handle_broadbast((self.rfile, self.wfile), peer, self)
   
-  class Subscriber(protocol.ServerFactory):
+  class broadcastr(protocol.ServerFactory):
     def buildProtocol(self, addr):
-      return Subscription()
+      return BroadCasting()
   
-  return Publisher(), Subscriber()
+  return commander(), broadcastr()
 
-def publish(environ, start_response):
-  print 'publish'
+def command(environ, start_response):
+  print 'command'
   stdout = StringIO.StringIO()
   q = cgi.parse_qs(environ['QUERY_STRING'])
   cookies = parseCookies(environ.get("HTTP_COOKIE", ""))
 
   def request():
-    print 'publish(request)'
+    print 'command(request)'
     method = environ['REQUEST_METHOD']
     print method
-    assert method == 'POST'
-    length = int(environ.get('CONTENT_LENGTH', 0))
-    input = environ['wsgi.input']
-    raw = input.read(length)
-    print 'wsgi.input:', repr(raw)
-    data = cgi.parse_qs(raw)
-    print 'data:', data
-    message = data['message'][0] or ''
-    channel = data['channel'][0] or ''
-    return channel, message
+    assert method == 'POST' 
+    # every command changes the server state
+    # so we must use POST
+
+    command = q['command'][0] #ugh!
+    channel = environ['PATH_INFO']
+    print channel
+
+    if command == 'subscribe':
+      return channel, '' 
+
+    elif  command == 'publish':
+      length = int(environ.get('CONTENT_LENGTH', 0))
+      input = environ['wsgi.input']
+      raw = input.read(length)
+      print 'wsgi.input:', repr(raw)
+      data = cgi.parse_qs(raw)
+      print 'data:', data
+      message = data['message'][0] or ''
+      return channel, message
+
+    elif  command == 'login':
+
+      return '', ''
+    else:
+      print 'no such command:', command
+      print channel
+      assert False
 
 
   def response(path, message):
-    print 'publish(response)'
+    print 'command(response)'
     #value = {'status': True}
     #j = '%s(%s);'%(q['callback'][0], simplejson.dumps(value))
     print >> stdout, ''
@@ -283,26 +304,26 @@ def publish(environ, start_response):
   return request, response
 
 
-def subscribe(environ, start_response):
-  print 'subscribe'
+def broadcast(environ, start_response):
+  print 'broadcast'
   stdout = StringIO.StringIO()
   q = cgi.parse_qs(environ['QUERY_STRING'])
   cookies = parseCookies(environ.get("HTTP_COOKIE", ""))
 
   def request():
-    print 'subscribe(request)'
+    print 'broadcast(request)'
     return '', None
   
   def response(path, message):
-    print 'subscribe(response)'
-    value = {'message':message, 'who':'hogeo'}
+    print 'broadcast(response)'
+    value = {'message':message, 'channel':'/A'}
     j = '%s(%s);'%(q['callback'][0], simplejson.dumps(value))
     print >> stdout, j
     start_response("200 OK", [('Content-Type','text/javascript')])
     return [stdout.getvalue()]
   return request, response
 
-pub, sub = make(publish, subscribe)
+pub, sub = make(command, broadcast)
 
 
 reactor.listenTCP(3165, sub)

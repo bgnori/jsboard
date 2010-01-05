@@ -6,38 +6,81 @@
 // dependencies: jquery.js
 //
 
-var hub = hub || {}; //global, namespace contamination
+var hub = hub || {}; //global
 
 (function($) {
   function debug(msg){
     console.log(msg);
   };
-  var conn;
-  var http_url;
-  var comet_url;
-  //hub.fn = hub.prototype;
+
+  var config = {
+    host : 'localhost',
+    comet_port: 3165,
+    http_port: 3124,
+  };
+  var handlers = {};
+
+  function buildparam(kwargs){
+    var r = '';
+    var k = '';
+    for (k in kwargs){
+      r += (k + '=' + kwargs[k]);
+    };
+    debug('buildparam:'+r);
+    return r;
+  };
+
+  function urlunparse(kwargs){
+    var d = {
+      scheme: 'http', 
+      hostname: 'localhost',
+      port: '',
+      username: '',
+      password: '',
+      path: '/', 
+      params: '',
+    };
+    $.extend(d, kwargs);
+    if (d.username && d.password){
+      0/0;
+    }else{
+      return  d.scheme + '://' + d.hostname + ':' + d.port + 
+              d.path + '?' + buildparam(d.params);
+    };
+  };
 
 
-  hub.init = function(host, comet_port, http_port) {
-    http_url = 'http://' + host + ':' + http_port + '/publish';
-    comet_url = 'http://' + host + ':' + comet_port;
+  hub.init = function(kwargs){
+    $.extend(config, kwargs);
+    debug('built config.');
+    debug(config);
+
     hub.listen();
     debug('hub has started listening.');
   };
 
   hub.listen = function() {
+    var url = urlunparse({
+      scheme: 'http',
+      hostname: config.host,
+      port: config.comet_port,
+    });
+    debug('listen to ' + url);
     $.ajax({
-      url: comet_url, //"http://comet.backgammonbase.test:3165",
+      url: url,
       dataType : "jsonp",
       type: "GET", // JSONP is <script> loading, nothing else.
       cache : false,
       data : {},
       timeout: 60*1000,
       success : function (data, dataType){
-        c = data['channel'];
-        for (h in hub[c]) { //ugh!
-          h(data['message']);
-        };
+        var c = data['channel'];
+        var m = data['message'];
+        debug(c);
+        debug(m);
+        h = handlers[c];
+        debug(h);
+        h(m);
         hub.listen();
       },
       error : function(){
@@ -47,19 +90,25 @@ var hub = hub || {}; //global, namespace contamination
   };
 
   hub.subscribe = function(channel, handler) {
+    var url = urlunparse({
+      scheme: 'http',
+      hostname: config.host,
+      port: config.http_port,
+      path: channel,
+      params : {
+        command:'subscribe',
+      }
+    });
+    debug('subscribe to ' + url);
     $.ajax({
-      url: http_url, //"http://comet.backgammonbase.test:8080/subscribe", 
+      url: url,
       type: "POST", 
       cache : false,
       contentType: "application/x-www-form-urlencoded",
-      data : {
-        channel:channel,
-        action:"subscribe",
-      },
+      data : {},
       timeout: 60*1000,
       success : function (data, dataType){
-        hs = hub.get(channel) || []; // ugh!
-        hs.append(handler);
+        handlers[channel] = handler; // ugh!
       },
       error : function(){
         alert("error");
@@ -68,14 +117,22 @@ var hub = hub || {}; //global, namespace contamination
   };
 
   hub.publish = function(channel, message, onSuccess ,onError) {
+    var url = urlunparse({
+      scheme: 'http',
+      hostname: config.host,
+      port: config.http_port,
+      path: channel,
+      params : {
+        command:'publish',
+      }
+    });
+    debug('publish to ' + url);
     $.ajax({
-      url: http_url, //"http://comet.backgammonbase.test:8080/publish", 
+      url: url,
       type: "POST", 
       cache : false,
       contentType: "application/x-www-form-urlencoded",
-      data : {
-        channel:channel, 
-        action:"publish",
+      data :{
         message:message, 
       },
       success : onSuccess,

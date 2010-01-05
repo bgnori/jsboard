@@ -20,7 +20,11 @@ function debug(msg){
 };
 $(document).ready(function(){
   debug('ready');
-  hub.init("comet.backgammonbase.test", 3165, 8080);
+  hub.init({
+    host:"comet.backgammonbase.test",
+    comet_port: 3165,
+    http_port: 8080//3124
+  });
   $('#target').chatForm('/A');
 });
 
