@@ -190,6 +190,8 @@ class WebHandler(BaseHandler):
     handler.request_handler = self      # backpointer for logging
     handler.run(app)
 
+    r = self.wfile.getvalue()
+    self.protocol.sendData()
 
 class CometHandler(BaseHandler):
 
@@ -222,7 +224,7 @@ class CometHandler(BaseHandler):
     self.httphandler.finish_response()
     r = self.wfile.getvalue()
     print r
-    self.protocol.sendData(r)
+    self.protocol.sendData()
 
 
 def make(web, comet):
