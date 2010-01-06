@@ -748,3 +748,27 @@ command=loginかぁ
 return valueを見てhandle_commandでがんばることが多い。
 このへんの書き直しはsessionを実装してから。
 
+
+ぐちゃぐちゃだ。
+web側をオリジナルのハンドラでやっていると寿命がちぢみすぎるので、WSGIにする。
+comet側との連携をどうとるかが問題
+
+a) cometとwebを別processにする
+- session共有が面倒。
+- scaleさせやすい？
+- process間でのやりとりをどうするのか？XML-RPC?
+
+b) cometとwebを同じprocessにする
+- session共有が楽。
+- scaleするか不明
+- webとcometのやりとりはmethod呼び出しで終わり。
+
+WSGIでかければそれほどひどいことにはならないはず。
+あとでの乗り換えが可能なはずだから。
+
+web側でappを書くときに参照したいよね。クロージャでもobjectでもいいけど。
+個人的にはクロージャか？
+
+
+
+

@@ -1,41 +1,50 @@
-#/usr/bin/python
+#!/usr/bin/python
 
 import StringIO
 import urllib
-import cgi
 
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer
 from wsgiref.handlers import SimpleHandler
-from twisted.internet import reactor, protocol
+from twisted.internet import protocol
 
 import simplejson
 
 __version__ = "0.1"
 
 
-def parseCookies(s):
-  cookies = {}
-  for x in [t.strip() for t in s.replace(",", ":").split(":")]:
-    if x == "":
-      continue
-    key,value = x.split("=", 1)
-    cookies[key] = value
-  return cookies
+class Session(object):
+  def __init__(self, i):
+    self.session_id = i
+    self.handlers = []
+    self.channels = {}
 
-class CometServer(object):
-  def __init__(self, server_name, pub, sub, RequestHandlerClass):
-    print 'CometServer:__init__'
-    self.RequestHandlerClass = RequestHandlerClass
-    self.pendingHandlers = []
+  def bind(self, h):
+    self.handlers.append(h)
+
+  def subscribe(self, channel):
+    self.channels.update({channel: 0}) #ugh! set
+
+  def fire(self, channel, message):
+    # ugh! O(n) algorithm for publishing for n clients
+    # we should register sessions to the channel
+    # see DualServer:fire also
+    if channel in self.channels: 
+      for h in self.handlers:
+        h.handle_response(message)
+
+class DualServer(object):
+  def __init__(self, server_name, web, comet):
+    print 'DualServer:__init__'
+    self.sessions = {}
 
     self.server_name = server_name
-    self.pub_app, self.pub_port= pub
-    self.sub_app, self.sub_port= sub
+    self.web_port, self.web_app, self.webHandlerClass = web
+    self.comet_port, self.comet_app, self.cometHandlerClass = comet
 
-    self.pub_environ = {}
-    self.sub_environ = {}
-    self.setup_environ(self.pub_environ, self.pub_port)
-    self.setup_environ(self.sub_environ, self.sub_port)
+    self.web_environ = {}
+    self.comet_environ = {}
+    self.setup_environ(self.web_environ, self.web_port)
+    self.setup_environ(self.comet_environ, self.comet_port)
 
   def setup_environ(self, env, port):
     # fomr WSGIServer
@@ -46,37 +55,12 @@ class CometServer(object):
     env['REMOTE_HOST']=''
     env['CONTENT_LENGTH']=''
     env['SCRIPT_NAME'] = ''
+    env['DualServer'] = self
 
-  def storeHandler(self, handler, path):
-    print 'CometServer:storeHandler', handler, path
-    self.pendingHandlers.append(handler)
+  def handle_comet(self, request, client_address, protocol):
+    print 'DualServer:handle_comet'
 
-  def getHandlers(self, path):
-    return self.pendingHandlers
-
-  def handle_broadbast(self, request, client_address, protocol):
-    h, path, message = self._handle_request(request, 
-                                          self.sub_app,
-                                          self.sub_environ, 
-                                          client_address, protocol)
-    assert message is None
-    self.storeHandler(h, path)
-
-  def handle_command(self, request, client_address, protocol):
-    h, path, message = self._handle_request(request, 
-                                        self.pub_app,
-                                        self.pub_environ,
-                                        client_address, protocol)
-    if message:
-      h.handle_response(path, message)
-      self.broadcast(path, message)
-    else:
-      self.storeHandler(h, path)
-  
-
-  def _handle_request(self, request, app, env, client_address, protocol):
-    print 'CometServer:_handle_request'
-    h = self.RequestHandlerClass(request, client_address, self)
+    h = self.cometHandlerClass(request, client_address, self)
     h.rfile.seek(0)
     h.raw_requestline = h.rfile.readline()
     if not h.raw_requestline:
@@ -85,14 +69,36 @@ class CometServer(object):
       return
     if not h.parse_request():
       print 'parse error'
-    path, message = h.handle_request(app, env, protocol)
-    return h, path, message
+    session_id = h.handle_request(self.comet_app, self.comet_environ, protocol)
+    # not path, must be session.
+    s = self.find(session_id)
+    if not s:
+      s = Session(session_id)
+    s.bind(h)
 
-  def broadcast(self, path, message):
-    for h in self.getHandlers(path):
-      print h
-      h.handle_response(path, message)
-    self.pendingHandlers = [] #ugh!
+  def find(self, session_id):
+    return self.sessions.get(session_id, None)
+
+
+  def handle_web(self, request, client_address, protocol):
+    print 'DualServer:handle_web'
+    h = self.webHandlerClass(request, client_address, self)
+    h.rfile.seek(0)
+    h.raw_requestline = h.rfile.readline()
+    if not h.raw_requestline:
+      self.close_connection = 1
+      print 'closing connection'
+      return
+    print 'DualServer:handle_web, h.raw_requestline:', h.raw_requestline
+    if not h.parse_request():
+      print 'parse error'
+    h.handle_request(self.web_app, self.web_environ, protocol)
+
+
+  def comet(self, channel, message):
+    print 'DualServer:comet'
+    for s in self.sessions.values(): 
+      s.fire(channel, message)
 
 
 class SplittedHandler(SimpleHandler):
@@ -115,15 +121,14 @@ class SplittedHandler(SimpleHandler):
         raise   # ...and let the actual server figure it out.
 
 
-class CometHandler(WSGIRequestHandler):
+class BaseHandler(WSGIRequestHandler):
 
-  server_version = "CometServer/" + __version__
+  server_version = "DualServer/" + __version__
 
   def __init__(self, request, client_address, server):
     self.rfile, self.wfile = request
     self.client_address = client_address
     self.server = server
-    self.httphandler = None
 
   def get_environ(self, base_environ):
     env = base_environ.copy()
@@ -171,18 +176,36 @@ class CometHandler(WSGIRequestHandler):
   def finish(self):
     raise
 
+class WebHandler(BaseHandler):
+  def handle_request(self, app, env, protocol):
+    print 'WebHandler:handle_request'
+    self.protocol = protocol
+    server = self.server
+
+    print 'WebHandler:handle_request ... making SimpleHandler'
+    handler = SimpleHandler(
+            self.rfile, self.wfile, self.get_stderr(), 
+            self.get_environ(env)
+            )
+    handler.request_handler = self      # backpointer for logging
+    handler.run(app)
+
+
+class CometHandler(BaseHandler):
+
+  def __init__(self, request, client_address, server):
+    BaseHandler.__init__(self, request, client_address, server)
+    self.httphandler = None
+
 
   def handle(self):
     raise
-    WSGIRequestHandler.handle(self)
   
   def handle_request(self, app, env, protocol):
     self.protocol = protocol
     print 'CometHandler:handle_request'
     server = self.server
-    #self.rfile.seek(0) 
-    print self.rfile.getvalue()
-    print 'evoking app'
+    #print self.rfile.getvalue()
     h = SplittedHandler(
             self.rfile, self.wfile, self.get_stderr(), 
             self.get_environ(env)
@@ -193,21 +216,19 @@ class CometHandler(WSGIRequestHandler):
     print self.app_request, self.app_response, self.httphandler
     return self.app_request()
 
-
   def handle_response(self, path, message):
     print 'CometHandler:handle_response'
     self.httphandler.result = self.app_response(path, message)
     self.httphandler.finish_response()
     r = self.wfile.getvalue()
     print r
-    self.protocol.sendData()
+    self.protocol.sendData(r)
 
 
-def make(command, broadcast):
-  server = CometServer('localhost', 
-                    (command, 3124, ),#CometHandler)
-                    (broadcast, 3165, ), #CometHandler),
-                    CometHandler)
+def make(web, comet):
+  server = DualServer('localhost', 
+                    (web[0], web[1], WebHandler),
+                    (comet[0], comet[1], CometHandler))
 
   class HTTPChannel(protocol.Protocol):
     def connectionLost(self, reason):
@@ -234,99 +255,24 @@ def make(command, broadcast):
     def onRequestReady(self):
       raise
 
-  class Command(HTTPChannel):
+  class Web(HTTPChannel):
     def onRequestReady(self):
       peer = self.transport.getPeer()
-      server.handle_command((self.rfile, self.wfile), peer, self)
+      server.handle_web((self.rfile, self.wfile), peer, self)
     
-  class commander(protocol.ServerFactory):
+  class WebFactory(protocol.ServerFactory):
     def buildProtocol(self, addr):
-      return Command()
+      return Web()
 
-  class BroadCasting(HTTPChannel):
+  class Comet(HTTPChannel):
     def onRequestReady(self):
       peer = self.transport.getPeer()
-      server.handle_broadbast((self.rfile, self.wfile), peer, self)
+      server.handle_comet((self.rfile, self.wfile), peer, self)
   
-  class broadcastr(protocol.ServerFactory):
+  class CometFactory(protocol.ServerFactory):
     def buildProtocol(self, addr):
-      return BroadCasting()
+      return Comet()
   
-  return commander(), broadcastr()
+  return WebFactory(), CometFactory()
 
-def command(environ, start_response):
-  print 'command'
-  stdout = StringIO.StringIO()
-  q = cgi.parse_qs(environ['QUERY_STRING'])
-  cookies = parseCookies(environ.get("HTTP_COOKIE", ""))
-
-  def request():
-    print 'command(request)'
-    method = environ['REQUEST_METHOD']
-    print method
-    assert method == 'POST' 
-    # every command changes the server state
-    # so we must use POST
-
-    command = q['command'][0] #ugh!
-    channel = environ['PATH_INFO']
-    print channel
-
-    if command == 'subscribe':
-      return channel, '' 
-
-    elif  command == 'publish':
-      length = int(environ.get('CONTENT_LENGTH', 0))
-      input = environ['wsgi.input']
-      raw = input.read(length)
-      print 'wsgi.input:', repr(raw)
-      data = cgi.parse_qs(raw)
-      print 'data:', data
-      message = data['message'][0] or ''
-      return channel, message
-
-    elif  command == 'login':
-
-      return '', ''
-    else:
-      print 'no such command:', command
-      print channel
-      assert False
-
-
-  def response(path, message):
-    print 'command(response)'
-    #value = {'status': True}
-    #j = '%s(%s);'%(q['callback'][0], simplejson.dumps(value))
-    print >> stdout, ''
-    start_response("200 OK", [('Content-Type','text/javascript')])
-    return [stdout.getvalue()]
-  return request, response
-
-
-def broadcast(environ, start_response):
-  print 'broadcast'
-  stdout = StringIO.StringIO()
-  q = cgi.parse_qs(environ['QUERY_STRING'])
-  cookies = parseCookies(environ.get("HTTP_COOKIE", ""))
-
-  def request():
-    print 'broadcast(request)'
-    return '', None
-  
-  def response(path, message):
-    print 'broadcast(response)'
-    value = {'message':message, 'channel':'/A'}
-    j = '%s(%s);'%(q['callback'][0], simplejson.dumps(value))
-    print >> stdout, j
-    start_response("200 OK", [('Content-Type','text/javascript')])
-    return [stdout.getvalue()]
-  return request, response
-
-pub, sub = make(command, broadcast)
-
-
-reactor.listenTCP(3165, sub)
-reactor.listenTCP(3124, pub)
-reactor.run()
 
