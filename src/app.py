@@ -5,120 +5,90 @@ import Cookie
 import cgi
 
 from twisted.internet import reactor, protocol
+
+import werkzeug as wz
+from werkzeug.routing import Map, Rule, NotFound, RequestRedirect
+from werkzeug.contrib.sessions import FilesystemSessionStore
+from werkzeug.exceptions import HTTPException
+
+
 from cometd import make
 
-def parseCookies(s):
-  #ugh!
-  cookies = {}
-  #for x in [t.strip() for t in s.replace(",", ":").split(":")]:
-  #  if x == "":
-  #    continue
-  #  key,value = x.split("=", 1)
-  #  cookies[key] = value
-  return cookies
 
-def web(environ, start_response):
-  print 'web... usual wsgi part'
-  stdout = StringIO.StringIO()
-  q = cgi.parse_qs(environ['QUERY_STRING'])
-  cookies = parseCookies(environ.get("HTTP_COOKIE", ""))
+url_map = Map() #place folder?
+def expose(rule, **kw):
+  def decorate(f):
+    kw['endpoint'] = f.__name__
+    url_map.add(Rule(rule, **kw))
+    return f
+  return decorate
 
-  method = environ['REQUEST_METHOD']
-  print method
-  assert method == 'POST' 
-  # every command changes the server state
-  # so we must use POST
+store = FilesystemSessionStore()
 
-  command = q['command'][0] #ugh!
-  channel = environ['PATH_INFO'] # path to channel mapping
-  print channel
+class Web:
+  @expose('/')
+  def top(self, request):
+    return  wz.Response('top', mimetype='text/plain')
 
-  dual = environ['DualServer']
+  @expose('/lobby')
+  def lobby(self, request):
+    sid = request.cookies.get('session_id')
+    if sid is None:
+      return wz.redirect('/login', 301)
+    return  wz.Response('lobby', mimetype='text/plain')
+  
+  @expose('/login')
+  def login(self, request):
+    sid = request.cookies.get('session_id')
+    if sid is None:
+      cookie = store.new()  
+    else:
+      cookie = store.get(sid)  
+      # already logged in
+      return wz.redirect('/lobby', 301)
+  
+    r = wz.Response('login', mimetype='text/plain')
+    r.set_cookie('session_id', cookie.sid)
+    return r
 
-  #needs error handling. just redirect to login page
-  try:
-    session_id = cookies['session_id']
-    assert session_id is not None
-  except:
-    print >> stdout, 'needs login'
-    start_response("200 OK", [('Content-Type','text/html')])
-    return [stdout.getvalue()]
-  session = dual.find(session_id)
+  @expose('/logout')
+  def logout(self, request):
+    sid = request.cookies.get('session_id')
+    if sid is None:
+      return wz.redirect('/', 301)
+    else:
+      cookie = store.get(sid)  
+      store.delete(cookie)
+  
+    r = wz.Response('logout', mimetype='text/plain')
+    r.set_cookie('session_id', cookie.sid, expires=0.0)
+    return r
 
+  @expose('/room/<int:room>')
+  def room(self, request, room):
+    return  wz.Response('room %i'%(room, ), mimetype='text/plain')
 
-  if command == 'subscribe':
-    session.subscribe(channel)
-    print >> stdout, ''
-    start_response("200 OK", [('Content-Type','text/html')])
-    return [stdout.getvalue()]
+  def __call__(self, environ, start_response):
+    self.server = environ['DualServer']
+    request = wz.Request(environ)
+    adapter = url_map.bind_to_environ(environ)
+    try:
+      endpoint, values = adapter.match()
+      handler = getattr(self, endpoint)
+      response = handler(request, **values)
 
-  elif  command == 'publish':
-    length = int(environ.get('CONTENT_LENGTH', 0))
-    input = environ['wsgi.input']
-    raw = input.read(length)
-    print 'wsgi.input:', repr(raw)
-    data = cgi.parse_qs(raw)
-    print 'data:', data
-    message = data['message'][0] or ''
-    dual.comet(channel, message)
-
-    print >> stdout, ''
-    start_response("200 OK", [('Content-Type','text/html')])
-    return [stdout.getvalue()]
-
-  elif  command == 'login':
-    length = int(environ.get('CONTENT_LENGTH', 0))
-    input = environ['wsgi.input']
-    raw = input.read(length)
-    print 'wsgi.input:', repr(raw)
-    data = cgi.parse_qs(raw)
-
-    print >> stdout, '<html><head>cookie</head>'
-    print >> stdout, '<body>login done. set cookie'
-    print >> stdout, '<a href="http://comet.backgammonbase.test:8080/jquery.comet.chat.html">continue test</a>'
-    print >> stdout, '</body></html>'
-    c = Cookie.SmartCookie()
-    c['session_id'] = '1'
-    c['path'] = '/'
-    c['domain'] = '.backgammonbase.test'
-    c['expire'] = ''
-
-    start_response("200 OK", 
-            [('Content-Type','text/html'), 
-             ('Set-Cookie', c.output(header=""))])
-    return [stdout.getvalue()]
-
-  else:
-    pass
-
-  # What going on???
-  print >> stdout, 'unknown command'
-  start_response("200 OK", [('Content-Type','text/html')])
-  return [stdout.getvalue()]
+    except HTTPException, e:
+      return e(environ, start_response)
+    return wz.ClosingIterator(response(environ, start_response))
 
 
 def comet(environ, start_response):
-  print 'comet'
-  q = cgi.parse_qs(environ['QUERY_STRING'])
-  cookies = parseCookies(environ.get("HTTP_COOKIE", ""))
-
-  def request():
-    print 'comet(request)'
-    # wanna fail in case of no cookie.
-    # may be redirect?
-    cookies['session_id']
-    return 1 #session_id
+  print 'comet(request)'
+  request = wz.Request(environ)
+  return request.cookies.get('session_id')
   
-  def response(channel, message):
-    stdout = StringIO.StringIO()
-    print 'comet(response)'
-    value = {'message':message, 'channel':channel}
-    j = '%s(%s);'%(q['callback'][0], simplejson.dumps(value))
-    print >> stdout, j
-    start_response("200 OK", [('Content-Type','text/javascript')])
-    return [stdout.getvalue()]
-  return request, response
 
+web=Web()
 web, comet = make((3124, web), (3165, comet))
 
 

@@ -108,13 +108,12 @@ class SplittedHandler(SimpleHandler):
       print "SplittedHandler:get_ready", self.environ
       print "SplittedHandler:get_ready", repr(self.stdin.getvalue())
       print "made setup_environ, calling app"
-      a, b = app(self.environ, self.start_response)
-      print a, b
-      return a, b
+      a = app(self.environ, self.start_response)
+      return a
     except:
       try:
         self.handle_error()
-        return None, None
+        return None
       except:
         # If we get an error handling an error, just give up already!
         self.close()
@@ -213,14 +212,23 @@ class CometHandler(BaseHandler):
             self.get_environ(env)
             )
     h.request_handler = self
-    self.app_request, self.app_response = h.get_ready(app)
     self.httphandler = h
-    print self.app_request, self.app_response, self.httphandler
-    return self.app_request()
+    print self.httphandler
+    return  h.get_ready(app)
 
   def handle_response(self, path, message):
     print 'CometHandler:handle_response'
-    self.httphandler.result = self.app_response(path, message)
+
+    def do_response(channel, message):
+      print 'comet(response)'
+      stdout = StringIO.StringIO()
+      value = {'message':message, 'channel':channel}
+      j = '%s(%s);'%(q['callback'][0], simplejson.dumps(value))
+      print >> stdout, j
+      r = wz.Response(stdout.getvalue(), mimetype='text/javascript')
+      return wz.ClosingIterator(response(environ, start_response))
+
+    self.httphandler.result = do_response(path, message)
     self.httphandler.finish_response()
     r = self.wfile.getvalue()
     print r
