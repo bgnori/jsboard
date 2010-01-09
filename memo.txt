@@ -783,5 +783,36 @@ DualServerやSessionがさわりにくい。
 session idは必ずhashable.
 do_responseは常に同じではないか？
 
+templateを使ってchat roomにしよう。
+
+fileがぐちゃぐちゃ過ぎる。
+
+つーか、move.pyとかこれで一つのアプリ。
+jsboard.jsもアプリ。move.pyにdependしている。
+なぞなのが今書いているchat server. cometの実験。
+最終目的地は対戦サーバでjsboardを使う側。分岐すべきだと思う。
+
+jsboardもjQuerypluginとして清書するべき。
+editorの実装がほしい。
+
+comet serverとして別パッケージにするべき。
+chat serverはsampleアプリ兼werkzeugの勉強
+
+名前案
+cubewano
+http://ja.wikipedia.org/wiki/%E3%82%AD%E3%83%A5%E3%83%93%E3%83%AF%E3%83%8E%E6%97%8F
+chiron
+http://ja.wikipedia.org/wiki/%E3%82%AD%E3%83%AD%E3%83%B3_%28%E5%B0%8F%E6%83%91%E6%98%9F%29
+
+Tunguska
+http://ja.wikipedia.org/wiki/%E3%83%84%E3%83%B3%E3%82%B0%E3%83%BC%E3%82%B9%E3%82%AB%E5%A4%A7%E7%88%86%E7%99%BA
+
+
+Tapisserie de Bayeux
+Bayeuxはこれからきているのだろう。
+http://ja.wikipedia.org/wiki/%E3%83%90%E3%82%A4%E3%83%A6%E3%83%BC%E3%81%AE%E3%82%BF%E3%83%9A%E3%82%B9%E3%83%88%E3%83%AA%E3%83%BC
+
+
+
 
 
