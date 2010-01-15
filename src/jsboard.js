@@ -5,7 +5,7 @@
 
 
 (function($){
-  function ImageURL(gnubgid, height, width, css){
+  function imageURL(gnubgid, height, width, css){
     return 'http://image.backgammonbase.com/image?' + 
       'gnubgid=' +  encodeURIComponent(gnubgid) + 
       '&height='+height +
@@ -14,7 +14,7 @@
       '&format=png';
   };
 
-  function Image(p, gnubgid, css, usemap){
+  function image(p, gnubgid, css, usemap){
     var img;
     img = p.find('[class="jsboard-image"]');
     if (img.length == 0){
@@ -28,44 +28,23 @@
 
     img.attr("usemap", usemap);
     img.attr("alt", gnubgid);
-    img.attr("src", ImageURL(gnubgid, img.attr("height"), img.attr("width"), css));
+    img.attr("src", imageURL(gnubgid, img.attr("height"), img.attr("width"), css));
   };
 
-  function Area(map, id, shape, coords, alt){
+  function area(map, id, shape, coords, alt){
     map.append($('<a id="'+ id 
                + '" shape="' + shape 
                + '" coords="' + coords 
                + '" alt="' + alt 
                + '" nohref="nohref" />'));
   };
-
-  function MoveDiv(r, t){
-    r.append($('<div>' + t + '</div>'));
-  };
   
-  function Pre(r, text){
-    r.append($('<pre>' + text + '</pre>'));
-  };
-  
-  function DebugDump(r, id){
-    var debug_textarea = '<form><textarea cols="60" rows="5">debugger\n</textarea></form>';
-    r.append(debug_textarea);
-  
-    r.find('#' +id +' a').mousedown(function(){
-      //alert($(this).attr("alt"));  //-> ok
-      debug = r.find("form textarea");
-      //alert(debug.attr('cols')); -> 60, ok
-      old = debug.val()
-      //debug.val(old + 'mousedown at hoge');
-      debug.val(old + 'mousedown at ' + $(this).attr("alt") + ' \n');
-      })
-  };
 
   rPositionID = new RegExp("Position ID: ([A-Za-z0-9/+]{14})")
   rMatchID = new RegExp("Match ID: ([A-Za-z0-9/+]{12})")
   rGnubgID = new RegExp("[A-Za-z0-9/+]{14}:[A-Za-z0-9/+]{12}")
 
-  function GnubgIDFinder(text){
+  function gnubgIDFinder(text){
     var pos;
     var match;
     var e;
@@ -117,11 +96,11 @@
   MoveListingPattern = MoveHeaderPattern + Line + '(:?' + MoveDataPattern + Line + ')*';
   MoveListingRegExp = new RegExp(MoveListingPattern, 'g');
   
-  function MoveFinder(text){
+  function moveFinder(text){
     return text.match(MoveListingRegExp);
   };
 
-  function MoveList(r, mv, odd){
+  function moveList(r, mv, odd){
     var m = mv.match(moveRegexp);
     if (odd){
       r.append($('<div class="movelist-odd-row" alt="' + m
@@ -155,7 +134,7 @@
             }else{
               a.attr('class', 'movelist-even-row-hover');
             }
-            img.attr('src', ImageURL(data.gnubgid, h, w, jsboard.style));
+            img.attr('src', imageURL(data.gnubgid, h, w, jsboard.style));
           },
           function out(){
             if (odd){
@@ -163,7 +142,7 @@
             }else{
               a.attr('class', 'movelist-even-row');
             }
-            img.attr('src', ImageURL(alt, h, w, jsboard.style));
+            img.attr('src', imageURL(alt, h, w, jsboard.style));
           });
         },
       error : function(){
@@ -172,39 +151,34 @@
     });
   };
   
-  function Editor(n){
+  function editor(n){
     var id_str =  'jsboard'+n;
 
     var root = $(this);
 
     var text = root.text();
-    var gnubgid = GnubgIDFinder(text);
-    var mvlist = MoveFinder(text);
+    var gnubgid = gnubgIDFinder(text);
+    var mvlist = moveFinder(text);
 
     root.empty(); //clean
 
-    Image(root, gnubgid, jsboard.style, '#'+id_str);
+    image(root, gnubgid, jsboard.style, '#'+id_str);
 
     root.append($('<map name="' + id_str + '" id="'+ id_str + '" />'));
     var map = $('#' + id_str);
-    //alert(map.attr('id')); -> ok
-    Area(map, "13pt", "rect", "25,5,43,93", "13pt");
-    Area(map, "7pt", "rect", "115,139,133,227", "7pt");
-    Area(map, "yourbar", "rect", "133,116,158,228", "yourbar");
+    area(map, "13pt", "rect", "25,5,43,93", "13pt");
+    area(map, "7pt", "rect", "115,139,133,227", "7pt");
+    area(map, "yourbar", "rect", "133,116,158,228", "yourbar");
 
 
     var mv;
     for (n in  mvlist){
       mv = mvlist[n];
-      MoveList(root, mv, n%2);
+      moveList(root, mv, n%2);
     };
-
-    if (jsboard.config.debug){
-      DebugDump(root, id_str);
-    }
   }
   $(document).ready(function(){
-    $('.jsboard').each(Editor);
+    $('.jsboard').each(editor);
   });
 })(jQuery);
 
