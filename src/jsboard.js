@@ -5,6 +5,10 @@
 
 
 (function($){
+  function debug(msg){
+    console.log(msg);
+  };
+
   function imageURL(gnubgid, height, width, css){
     return 'http://image.backgammonbase.com/image?' + 
       'gnubgid=' +  encodeURIComponent(gnubgid) + 
@@ -102,6 +106,7 @@
 
   function moveList(r, mv, odd){
     var m = mv.match(moveRegexp);
+    debug(m);
     if (odd){
       r.append($('<div class="movelist-odd-row" alt="' + m
                   + '"><pre>' + mv + '</pre></div>'));
@@ -118,7 +123,7 @@
       url: jsboard.config.move_api_url,
       dataType : "jsonp",
       cache : false,
-      data : {move : m, gnubgid : alt},
+      data : {'move' : m[0], gnubgid : alt},
       success : function (data, dataType){
         var img = r.find('img')
         var href = img.attr('href');
