@@ -26,7 +26,7 @@ moveRegExp = re.compile(r"(?P<src>" + pointPattern +
                           ")(?P<hitting>\*)?(\((?P<multi>[1-4])\))?")
 
 
-def my_app(environ, start_response):
+def app(environ, start_response):
     from StringIO import StringIO
     stdout = StringIO()
     q = cgi.parse_qs(environ['QUERY_STRING'])
@@ -79,6 +79,6 @@ def my_app(environ, start_response):
 
 
 if __name__ == '__main__':
-  httpd = make_server('', 8000, my_app);
+  httpd = make_server('', 8000, app);
   httpd.serve_forever();
 
