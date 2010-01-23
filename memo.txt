@@ -816,7 +816,10 @@ http://ja.wikipedia.org/wiki/%E3%83%90%E3%82%A4%E3%83%A6%E3%83%BC%E3%81%AE%E3%82
 Tunguska分離。
 
 somepositions.htmlがレンダーされない。
+-> configが必要になった。
 
+firebugをあけてないと正しくレンダーされない。
+-> debug内でconsoleが定義されていたらlogする。
 
-
+portを8002に変更
 

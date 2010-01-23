@@ -6,9 +6,20 @@
 
 (function($){
   function debug(msg){
-    console.log(msg);
+    if (console){
+      console.log(msg);
+    };
   };
 
+  jsboard = jsboard ||
+    {
+      style: "nature",
+      config : {
+        move_api_url : "http://localhost:8000/",
+        debug: true,
+        },
+    };
+  
   function imageURL(gnubgid, height, width, css){
     return 'http://image.backgammonbase.com/image?' + 
       'gnubgid=' +  encodeURIComponent(gnubgid) + 
@@ -186,7 +197,6 @@
     $('.jsboard').each(editor);
   });
 })(jQuery);
-
 
 
 
