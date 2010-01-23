@@ -21,7 +21,7 @@
         },
   };
   jsboard = jsboard || def;
-  $.extend(jsboard, def);
+  $.extend(def, jsboard);
   
   function imageURL(gnubgid, height, width, css){
     return 'http://image.backgammonbase.com/image?' + 
@@ -202,23 +202,34 @@
     };
   }
 
-  function setCSS(){
-    debug('setCSS');
-    if (jsboard && jsboard.css){
-      var link = $('<link rel="stylesheet" type="text/css" href="'+ jsboard.css + '" />');
-      debug('inserting' + jsboard.css);
-      $("head").append(link);
-    } else {
-      alert('need jsboard.css');
-    };
+  function loadCSS(src, delay, onload, error){
+    $.ajax({
+      type: "GET",
+      url: src,
+      dataType: 'text',
+      success: function(data, dataType){
+        debug('inserting ' + src);
+        var link = $('<link rel="stylesheet" type="text/css" href="'+ src+ '" />');
+        $("head").append(link);
+        setTimeout(function(){
+          onload();
+        }, 
+        delay);
+      },
+      'error': error,
+    });
   };
 
   // entry point
   $(document).ready(function(){
-    setCSS(); 
-    var t = setTimeout(function(){
+    loadCSS(jsboard.css, jsboard.delay, 
+    function(){
+      debug('processing.');
       $('.jsboard').each(editor);
-    }, jsboard.delay);
+    }, 
+    function (XMLHttpRequest, testStatus, errorThrown){
+      debug('css load failed: '+ jsboard.css);
+    }); 
   });
 })(jQuery);
 
