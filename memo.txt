@@ -823,3 +823,29 @@ firebugをあけてないと正しくレンダーされない。
 
 portを8002に変更
 
+
+cssを設定するためにlink rel="stylesheet"をjsで動的に生成するようにした。
+
+jsでcssを動的に設定するようにしたら、画像サイズが古い設定で画像が読み込まれてしまう。
+  function setCSS(){
+    if (jsboard && jsboard.css){
+      var link = $('<link rel="stylesheet" type="text/css" href="'+ jsboard.css + '" />');
+      debug('inserting' + jsboard.css);
+      $("head").append(link);
+    };
+  };
+
+setしたCSSがすぐには「見えない」ので、Timerを使って遅延する。
+  $(document).ready(function(){
+    setCSS(); 
+    var t = setTimeout(function(){
+      $('.jsboard').each(editor);
+    }, 50);
+  });
+
+50msにした。contentによってうまくいかないことがある・・・。
+
+
+
+
+

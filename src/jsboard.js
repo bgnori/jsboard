@@ -11,14 +11,17 @@
     };
   };
 
-  jsboard = jsboard ||
-    {
+  def = {
       style: "nature",
+      delay: 50,
+      css: "http://assets.backgammonbase.com/default.css",
       config : {
-        move_api_url : "http://localhost:8000/",
+        move_api_url : "http://move.api.backgammonbase.com/",
         debug: true,
         },
-    };
+  };
+  jsboard = jsboard || def;
+  $.extend(jsboard, def);
   
   function imageURL(gnubgid, height, width, css){
     return 'http://image.backgammonbase.com/image?' + 
@@ -33,17 +36,23 @@
     var img;
     img = p.find('[class="jsboard-image"]');
     if (img.length == 0){
+      // There is nothing.
       p.append($('<img class="jsboard-image" />'));
-        img = p.find('[class="jsboard-image"]');
+      img = p.find('[class="jsboard-image"]');
+      debug('made image elem');
     }else{
+      // There is already something 
       if(img.length != 1){
         alert('ugh!!!');
       }
     }
-
+    var w = img.attr('width'); //asume px
+    var h = img.attr('height'); //assume px
+    debug(w);
+    debug(h);
     img.attr("usemap", usemap);
     img.attr("alt", gnubgid);
-    img.attr("src", imageURL(gnubgid, img.attr("height"), img.attr("width"), css));
+    img.attr("src", imageURL(gnubgid, h, w, css));
   };
 
   function area(map, id, shape, coords, alt){
@@ -136,11 +145,10 @@
       cache : false,
       data : {'move' : m[0], gnubgid : alt},
       success : function (data, dataType){
-        var img = r.find('img')
-        var href = img.attr('href');
-        var alt = img.attr('alt');
         var w = img.attr('width');
         var h = img.attr('height');
+        debug(w);
+        debug(h);
   
         var a = r.find('[alt="' + m + '"]');
         a.hover(
@@ -193,10 +201,25 @@
       moveList(root, mv, n%2);
     };
   }
+
+  function setCSS(){
+    debug('setCSS');
+    if (jsboard && jsboard.css){
+      var link = $('<link rel="stylesheet" type="text/css" href="'+ jsboard.css + '" />');
+      debug('inserting' + jsboard.css);
+      $("head").append(link);
+    } else {
+      alert('need jsboard.css');
+    };
+  };
+
+  // entry point
   $(document).ready(function(){
-    $('.jsboard').each(editor);
+    setCSS(); 
+    var t = setTimeout(function(){
+      $('.jsboard').each(editor);
+    }, jsboard.delay);
   });
 })(jQuery);
-
 
 
