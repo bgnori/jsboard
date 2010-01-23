@@ -11,7 +11,7 @@
     };
   };
 
-  def = {
+  var def = {
       style: "nature",
       delay: 50,
       css: "http://assets.backgammonbase.com/default.css",
@@ -22,6 +22,7 @@
   };
   jsboard = jsboard || def;
   $.extend(def, jsboard);
+  jsboard = def;
   
   function imageURL(gnubgid, height, width, css){
     return 'http://image.backgammonbase.com/image?' + 
@@ -64,9 +65,9 @@
   };
   
 
-  rPositionID = new RegExp("Position ID: ([A-Za-z0-9/+]{14})")
-  rMatchID = new RegExp("Match ID: ([A-Za-z0-9/+]{12})")
-  rGnubgID = new RegExp("[A-Za-z0-9/+]{14}:[A-Za-z0-9/+]{12}")
+  var rPositionID = new RegExp("Position ID: ([A-Za-z0-9/+]{14})")
+  var rMatchID = new RegExp("Match ID: ([A-Za-z0-9/+]{12})")
+  var rGnubgID = new RegExp("[A-Za-z0-9/+]{14}:[A-Za-z0-9/+]{12}")
 
   function gnubgIDFinder(text){
     var pos;
@@ -95,31 +96,31 @@
     //return '4PPgAQPgc+QBIg:cAl7AAAAAAAA';
   };
   
-  CR = "\n";
-  LF = "\r";
-  CRLF = "\r\n";
-  Line = '(?:' + CRLF + '|' + CR + '|' + LF + ')';
-  floatPattern = "(?:\\+?-?[0-9]+\\.[0-9]+)";
-  floatRegExp = new RegExp(floatPattern, 'g');
-  movePlacePattern = "(?:[0-9]+\\. )";
-  movePlaceRegExp = new RegExp(movePlacePattern, 'g');
-  evalTypePattern = "(?:(?:Cubeful [01234]-ply)|(?:Rollout))";
-  evalTypeRegExp = new RegExp(evalTypePattern, 'g');
-  pointPattern = "(?:(?:bar)|(?:[12][0-9]|[0-9])|(?:off))";
-  pointRegExp = new RegExp(pointPattern, 'g');
-  movePattern = "(?:(?:" + pointPattern + "/(?:" + pointPattern + "\\*?)+(?:\\([1-4]\\))?) ?)+";
-  moveRegexp = new RegExp(movePattern, 'g');
-  equityPattern = "Eq.: +"+floatPattern + "(?: \\( "+ floatPattern + "\\))?";
-  equityRegexp = new RegExp(equityPattern, 'g');
+  var CR = "\n";
+  var LF = "\r";
+  var CRLF = "\r\n";
+  var Line = '(?:' + CRLF + '|' + CR + '|' + LF + ')';
+  var floatPattern = "(?:\\+?-?[0-9]+\\.[0-9]+)";
+  var floatRegExp = new RegExp(floatPattern, 'g');
+  var movePlacePattern = "(?:[0-9]+\\. )";
+  var movePlaceRegExp = new RegExp(movePlacePattern, 'g');
+  var evalTypePattern = "(?:(?:Cubeful [01234]-ply)|(?:Rollout))";
+  var evalTypeRegExp = new RegExp(evalTypePattern, 'g');
+  var pointPattern = "(?:(?:bar)|(?:[12][0-9]|[0-9])|(?:off))";
+  var pointRegExp = new RegExp(pointPattern, 'g');
+  var movePattern = "(?:(?:" + pointPattern + "/(?:" + pointPattern + "\\*?)+(?:\\([1-4]\\))?) ?)+";
+  var moveRegexp = new RegExp(movePattern, 'g');
+  var equityPattern = "Eq.: +"+floatPattern + "(?: \\( "+ floatPattern + "\\))?";
+  var equityRegexp = new RegExp(equityPattern, 'g');
   
-  MoveHeaderPattern = "(?: ){4}" + movePlacePattern + " *" + evalTypePattern + " *" + movePattern + " *" + equityPattern;
-  MoveHeaderRegExp = new RegExp(MoveHeaderPattern,'g');
-  MoveDataPattern = "(?: ){5,}.*";
-  MoveDataRegExp = new RegExp(MoveDataPattern);
+  var MoveHeaderPattern = "(?: ){4}" + movePlacePattern + " *" + evalTypePattern + " *" + movePattern + " *" + equityPattern;
+  var MoveHeaderRegExp = new RegExp(MoveHeaderPattern,'g');
+  var MoveDataPattern = "(?: ){5,}.*";
+  var MoveDataRegExp = new RegExp(MoveDataPattern);
   
-  MoveListingPattern = MoveHeaderPattern + Line + '(:?' + MoveDataPattern + Line + ')*';
-  MoveListingRegExp = new RegExp(MoveListingPattern, 'g');
-  
+  var MoveListingPattern = MoveHeaderPattern + Line + '(:?' + MoveDataPattern + Line + ')*';
+  var MoveListingRegExp = new RegExp(MoveListingPattern, 'g');
+6
   function moveFinder(text){
     return text.match(MoveListingRegExp);
   };
