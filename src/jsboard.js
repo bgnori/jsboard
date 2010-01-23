@@ -6,7 +6,7 @@
 
 (function($){
   function debug(msg){
-    if (console){
+    if (window['console']){
       console.log(msg);
     };
   };
