@@ -813,6 +813,10 @@ Bayeuxはこれからきているのだろう。
 http://ja.wikipedia.org/wiki/%E3%83%90%E3%82%A4%E3%83%A6%E3%83%BC%E3%81%AE%E3%82%BF%E3%83%9A%E3%82%B9%E3%83%88%E3%83%AA%E3%83%BC
 
 
+Tunguska分離。
+
+somepositions.htmlがレンダーされない。
+
 
 
 
