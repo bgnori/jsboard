@@ -84,14 +84,14 @@
         //surpress error try other.
       };
       try{
-        gnubgid = text.match(rGnubgID);
+        var gnubgid = text.match(rGnubgID);
         if (gnubgid){
           return gnubgid;
-        }
+        };
       }catch(e){
         //surpress error and use default value
       };
-    }
+    };
     return '4HPwATDgc/ABMA:cAkAAAAAAAAA';
     //return '4PPgAQPgc+QBIg:cAl7AAAAAAAA';
   };
@@ -209,6 +209,8 @@
       url: src,
       dataType: 'text',
       success: function(data, dataType){
+        debug(data);
+        debug(dataType);
         debug('inserting ' + src);
         var link = $('<link rel="stylesheet" type="text/css" href="'+ src+ '" />');
         $("head").append(link);
