@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Module>
+  <ModulePref title="backgammonbase.com">
+  </ModulePref>
+  <Content type="html">
+   <![CDATA[
+<!-- blog parts begin -->
+<script src="http://www.google.com/jsapi" type="text/javascript"></script>
+<script>
+google.load("jquery", "1.4.0");
+jsboard = {
+  style: "nature",
+  delay: 10,
+  css: "http://assets.backgammonbase.com/default.css",
+  config : {
+    move_api_url : "http://move.api.backgammonbase.com/",
+    debug: true,
+  },
+};
+</script>
+<script src="http://assets.backgammonbase.com/jsboard.js"
+type="text/javascript">
+</script>
+<!-- blog parts end -->
+]]>
+  </Content>
+</Module>

@@ -41,6 +41,7 @@ setup(
               ],
   data_files=[('/var/www/backgammonbase.com/assets/', 
                   ['src/jsboard.js',
+                   'assets/blogparts.xml',
                    'assets/default.css']),
               ('/var/www/backgammonbase.com/doc/', 
                   ['howtouse.txt',

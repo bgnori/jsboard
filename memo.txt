@@ -856,4 +856,7 @@ Bloggerでテストしたがうまくいかない。
 pxがなくて無視されている？
 
 
+google gadgetsを使うと迂回できるようだ。
+http://d.hatena.ne.jp/Hamachiya2/20070814/google_gadgets
+
 
