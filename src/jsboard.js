@@ -47,8 +47,9 @@
         alert('ugh!!!');
       }
     }
-    var w = img.attr('width'); //asume px
-    var h = img.attr('height'); //assume px
+    // not sure that image has loaded so, use css
+    var w = parseInt(img.css('width')); //asume px
+    var h = parseInt(img.css('height')); //assume px
     debug(w);
     debug(h);
     img.attr("usemap", usemap);
@@ -146,6 +147,7 @@
       cache : false,
       data : {'move' : m[0], gnubgid : alt},
       success : function (data, dataType){
+        // already image has loaded so, use attr
         var w = img.attr('width');
         var h = img.attr('height');
         debug(w);

@@ -854,9 +854,17 @@ elementを生成し、そこで短いtimerをsetするのが正しい気がし�
 
 Bloggerでテストしたがうまくいかない。
 pxがなくて無視されている？
-
+-> pxを追加したけど駄目。jsで動的に生成しているようだ。
+評価の順番が問題なのだろうか？
 
 google gadgetsを使うと迂回できるようだ。
 http://d.hatena.ne.jp/Hamachiya2/20070814/google_gadgets
+
+hatenaとgooはiframeの中には入れるようだ。
+逆に外はいじれない。
+
+
+Bloggerの評価順序？を調べるべきか。
+elem.cssをつかう。
 
 
