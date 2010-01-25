@@ -873,10 +873,24 @@ BloggerはCRLFが消えてしまうようだ。
 move listに関係するRegexpに
 -> CRLFなしに対応... ?をつける。
 -> Headerの先読み否定をDataにつける。
-
     +   '(?:'+ floatPattern + '|-|CF|CL)(?: (?:'+ floatPattern + '|-|CF|CL))+'
 
 (?:floatPattern |-|CF|CL)(?: (?:floatPattern|-|CF|CL))+
+
+とりあえず、複数Headerを拾うことはできるようになったが・・・
+
+正規表現のデバッグのループが長すぎる。
+Firebugでは不十分。
+Mozillaのengineをスタンドアロンでbuildしてunittestを書く？
+なんらかのtemplate engineを使う。
+- http://alpha.mixi.co.jp/blog/?p=341
+
+
+https://developer.mozilla.org/ja/Core_JavaScript_1.5_Guide/Regular_Expressions
+m フラグは複数行の入力文字列を複数の行として扱うようにしているのに用います。m
+フラグを使用した場合、^ および $
+は、文字列全体の先頭または末尾ではなく、入力文字列のどの行の先頭または末尾にもマッチします。
+
 
 
 

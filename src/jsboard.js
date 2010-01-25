@@ -40,7 +40,7 @@
       // There is nothing.
       p.append($('<img class="jsboard-image" />'));
       img = p.find('[class="jsboard-image"]');
-      debug('made image elem');
+      //debug('made image elem');
     }else{
       // There is already something 
       if(img.length != 1){
@@ -50,8 +50,8 @@
     // not sure that image has loaded so, use css
     var w = parseInt(img.css('width')); //asume px
     var h = parseInt(img.css('height')); //assume px
-    debug(w);
-    debug(h);
+    //debug(w);
+    //debug(h);
     img.attr("usemap", usemap);
     img.attr("alt", gnubgid);
     img.attr("src", imageURL(gnubgid, h, w, css));
@@ -97,48 +97,54 @@
     //return '4PPgAQPgc+QBIg:cAl7AAAAAAAA';
   };
   
-  var CR = "\n";
-  var LF = "\r";
-  var CRLF = "\r\n";
+  var CR = "\\n";
+  var LF = "\\r";
+  var CRLF = "\\r\\n";
   var Line = '(?:' + CRLF + '|' + CR + '|' + LF + ')';
-  var floatPattern = "(?:\\+?-?[0-9]+\\.[0-9]+)";
+  var floatPattern = "(?:[+-]?\\d+\\.\\d+)";
   var floatRegExp = new RegExp(floatPattern, 'g');
-  var movePlacePattern = "(?:[0-9]+\\. )";
+  var movePlacePattern = "(?:\\d+\\. )";
   var movePlaceRegExp = new RegExp(movePlacePattern, 'g');
   var evalTypePattern = "(?:(?:Cubeful [01234]-ply)|(?:Rollout))";
   var evalTypeRegExp = new RegExp(evalTypePattern, 'g');
-  var pointPattern = "(?:(?:bar)|(?:[12][0-9]|[0-9])|(?:off))";
+  var pointPattern = "(?:(?:bar)|(?:[12]\\d|\\d)|(?:off))";
   var pointRegExp = new RegExp(pointPattern, 'g');
   var movePattern = "(?:(?:" + pointPattern + "/(?:" + pointPattern + "\\*?)+(?:\\([1-4]\\))?) ?)+";
   var moveRegexp = new RegExp(movePattern, 'g');
   var equityPattern = "Eq.: +"+floatPattern + "(?: \\( "+ floatPattern + "\\))?";
   var equityRegexp = new RegExp(equityPattern, 'g');
   
-  var MoveHeaderPattern = "(?:(?: ){4}" + movePlacePattern + " *" + evalTypePattern + " *" + movePattern + " *" + equityPattern + ')';
+  var MoveHeaderPattern = "(?:(?: ){4}" + movePlacePattern + "(?: )*" + evalTypePattern + "(?: )*" + movePattern + "(?: )*" + equityPattern + ')';
   var MoveHeaderRegExp = new RegExp(MoveHeaderPattern,'g');
-  var MoveDataPattern = '(?:    ' // 4 spaces
-   +  '(?:  ' // 4+2 spaces
-   +    '\\[(?:'+ floatPattern + '|-|CF|CL)(?: (?:'+ floatPattern + '|-|CF|CL))+\\]'
+  var allEquityPattern =  '(?:'+ floatPattern + ' ' + floatPattern + ' ' + floatPattern + ' - ' 
+                               + floatPattern + ' ' + floatPattern + ' ' + floatPattern + ')';
+  debug(allEquityPattern);
+  var CFCLPattern =  '(?: CL  [ +-]' + floatPattern + ' CF  [ +-]' + floatPattern + ')';
+  debug(CFCLPattern);
+
+  var MoveDataPattern = '(?:(?: ){4}' 
+   +  '(?:(?: ){3}'
+   +    allEquityPattern + CFCLPattern + '?'
    +  ')|'
-   +  '(?:   ' // 4+3 spaces
-   +    '(?:'+ floatPattern + '|-|CF|CL)(?: (?:'+ floatPattern + '|-|CF|CL))+'
+   +  '(?:(?: ){2}'
+   +    '\\[' + allEquityPattern + CFCLPattern + '\\]'
    +  ')|'
-   +  '(?:    '  // 4+4 spaces
-   +    '(?:\\d+-ply cubeful prune \\[\w+ class\\])|'
+   +  '(?:(?: ){4}'
    +    '(?:Full cubeful rollout with var\\.redn\\.)|'
+   +    '(?:\\d+-ply cubeful prune \\[\\w+ class\\])|'
    +    '(?:\\d+ games, Mersenne Twister dice gen\\. with seed \\d+ and quasi-random dice)|' 
    +    '(?:Play: \\w+ class \\d+-ply cubeful prune \\[\\w+ class\\])|'
-   +    '(?:keep the first \\d+ \\d+-ply moves and up to \\d+ more moves within equity 0\\.\\d+)|'
+   +    '(?:keep the first \\d+ \\d+-ply moves and up to \\d+ more moves within equity '+floatPattern +')|'
    +    '(?:Skip pruning for \\d+-ply moves\\.)|'
    +    '(?:Cube: \\d+-ply cubeful prune \\[\\w+ class\\])'
    +  ')'
    +')';
   debug(MoveDataPattern);
-  var MoveDataRegExp = new RegExp(MoveDataPattern);
-  
-  var MoveListingPattern = MoveHeaderPattern + Line + '?' + '(:?' + MoveDataPattern + Line +'?'+ ')*';
+  var MoveDataRegExp = new RegExp(MoveDataPattern, 'g');
+  var MoveListingPattern = MoveHeaderPattern + Line + '?' + '(?:' + MoveDataPattern + Line +'?'+ ')*';
+  debug(MoveListingPattern);
   var MoveListingRegExp = new RegExp(MoveListingPattern, 'g');
-6
+
   function moveFinder(text){
     var m = text.match(MoveListingRegExp);
     debug(m);
@@ -146,6 +152,7 @@
   };
 
   function moveList(r, mv, odd){
+    debug(mv);
     var m = mv.match(moveRegexp);
     debug(m);
     if (odd){
@@ -169,8 +176,8 @@
         // already image has loaded so, use attr
         var w = img.attr('width');
         var h = img.attr('height');
-        debug(w);
-        debug(h);
+        //debug(w);
+        //debug(h);
   
         var a = r.find('[alt="' + m + '"]');
         a.hover(
@@ -230,8 +237,6 @@
       url: src,
       dataType: 'text',
       success: function(data, dataType){
-        debug(data);
-        debug(dataType);
         debug('inserting ' + src);
         var link = $('<link rel="stylesheet" type="text/css" href="'+ src+ '" />');
         $("head").append(link);
