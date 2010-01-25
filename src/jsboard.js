@@ -145,10 +145,17 @@
   debug(MoveListingPattern);
   var MoveListingRegExp = new RegExp(MoveListingPattern, 'g');
 
+  var MoveHeaderOrDataPattern = MoveHeaderPattern + '|' + MoveDataPattern ;
+  var MoveHeaderOrDataRegExp = new RegExp(MoveHeaderOrDataPattern, 'g');
+
   function moveFinder(text){
     var m = text.match(MoveListingRegExp);
     debug(m);
     return m;
+  };
+
+  function reformatMove(mv){
+    return mv.match(MoveHeaderOrDataRegExp).join('\n');
   };
 
   function moveList(r, mv, odd){
@@ -157,10 +164,10 @@
     debug(m);
     if (odd){
       r.append($('<div class="movelist-odd-row" alt="' + m
-                  + '"><pre>' + mv + '</pre></div>'));
+                  + '"><pre>' + reformatMove(mv) + '</pre></div>'));
     }else{
       r.append($('<div class="movelist-even-row" alt="' + m
-                  + '"><pre>' + mv + '</pre></div>'));
+                  + '"><pre>' + reformatMove(mv) + '</pre></div>'));
     };
   
     var img = r.find("img");
