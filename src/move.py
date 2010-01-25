@@ -79,6 +79,6 @@ def app(environ, start_response):
 
 
 if __name__ == '__main__':
-  httpd = make_server('', 8000, app);
+  httpd = make_server('localhost', 8000, app);
   httpd.serve_forever();
 

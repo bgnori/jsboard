@@ -868,3 +868,15 @@ Bloggerの評価順序？を調べるべきか。
 elem.cssをつかう。
 
 
+BloggerはCRLFが消えてしまうようだ。
+対策が必要。
+move listに関係するRegexpに
+-> CRLFなしに対応... ?をつける。
+-> Headerの先読み否定をDataにつける。
+
+
+
+
+
+
+

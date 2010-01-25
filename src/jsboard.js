@@ -114,12 +114,12 @@
   var equityPattern = "Eq.: +"+floatPattern + "(?: \\( "+ floatPattern + "\\))?";
   var equityRegexp = new RegExp(equityPattern, 'g');
   
-  var MoveHeaderPattern = "(?: ){4}" + movePlacePattern + " *" + evalTypePattern + " *" + movePattern + " *" + equityPattern;
+  var MoveHeaderPattern = "(?:(?: ){4}" + movePlacePattern + " *" + evalTypePattern + " *" + movePattern + " *" + equityPattern + ')';
   var MoveHeaderRegExp = new RegExp(MoveHeaderPattern,'g');
-  var MoveDataPattern = "(?: ){5,}.*";
+  var MoveDataPattern = '(?:' + '(?!' + MoveHeaderPattern + ')' + '(?: ){5,}.*' + ')';
   var MoveDataRegExp = new RegExp(MoveDataPattern);
   
-  var MoveListingPattern = MoveHeaderPattern + Line + '(:?' + MoveDataPattern + Line + ')*';
+  var MoveListingPattern = MoveHeaderPattern + Line + '?' + '(:?' + MoveDataPattern + Line +'?'+ ')*';
   var MoveListingRegExp = new RegExp(MoveListingPattern, 'g');
 6
   function moveFinder(text){
