@@ -122,23 +122,23 @@
   var CFCLPattern =  '(?: CL  [ +-]' + floatPattern + ' CF  [ +-]' + floatPattern + ')';
   debug(CFCLPattern);
 
-  var MoveDataPattern = '(?:(?: ){4}' 
+  var MoveDataPattern = '(?:(?: ){4}(?:' 
    +  '(?:(?: ){3}'
    +    allEquityPattern + CFCLPattern + '?'
    +  ')|'
    +  '(?:(?: ){2}'
    +    '\\[' + allEquityPattern + CFCLPattern + '\\]'
    +  ')|'
-   +  '(?:(?: ){4}'
+   +  '(?:(?: ){4}('
    +    '(?:Full cubeful rollout with var\\.redn\\.)|'
-   +    '(?:\\d+-ply cubeful prune \\[\\w+ class\\])|'
+   +    '(?:\\d+-ply cubeful prune \\[[[a-zA-Z ]+\\])|'
    +    '(?:\\d+ games, Mersenne Twister dice gen\\. with seed \\d+ and quasi-random dice)|' 
-   +    '(?:Play: \\w+ class \\d+-ply cubeful prune \\[\\w+ class\\])|'
+   +    '(?:Play: \\w+ class \\d+-ply cubeful prune \\[[a-zA-Z ]+\\])|'
    +    '(?:keep the first \\d+ \\d+-ply moves and up to \\d+ more moves within equity '+floatPattern +')|'
    +    '(?:Skip pruning for \\d+-ply moves\\.)|'
-   +    '(?:Cube: \\d+-ply cubeful prune \\[\\w+ class\\])'
-   +  ')'
-   +')';
+   +    '(?:Cube: \\d+-ply cubeful prune \\[[a-zA-Z ]+\\])'
+   +  '))'
+   +'))';
   debug(MoveDataPattern);
   var MoveDataRegExp = new RegExp(MoveDataPattern, 'g');
   var MoveListingPattern = MoveHeaderPattern + Line + '?' + '(?:' + MoveDataPattern + Line +'?'+ ')*';
