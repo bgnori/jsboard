@@ -130,13 +130,7 @@
    +    '\\[' + allEquityPattern + CFCLPattern + '\\]'
    +  ')|'
    +  '(?:(?: ){4}('
-   +    '(?:Full cubeful rollout with var\\.redn\\.)|'
-   +    '(?:\\d+-ply cubeful prune \\[[[a-zA-Z ]+\\])|'
-   +    '(?:\\d+ games, Mersenne Twister dice gen\\. with seed \\d+ and quasi-random dice)|' 
-   +    '(?:Play: \\w+ class \\d+-ply cubeful prune \\[[a-zA-Z ]+\\])|'
-   +    '(?:keep the first \\d+ \\d+-ply moves and up to \\d+ more moves within equity '+floatPattern +')|'
-   +    '(?:Skip pruning for \\d+-ply moves\\.)|'
-   +    '(?:Cube: \\d+-ply cubeful prune \\[[a-zA-Z ]+\\])'
+   +      '(?:(?: ){0,3}(?:\\S))+'
    +  '))'
    +'))';
   debug(MoveDataPattern);
