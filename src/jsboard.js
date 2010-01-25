@@ -116,14 +116,33 @@
   
   var MoveHeaderPattern = "(?:(?: ){4}" + movePlacePattern + " *" + evalTypePattern + " *" + movePattern + " *" + equityPattern + ')';
   var MoveHeaderRegExp = new RegExp(MoveHeaderPattern,'g');
-  var MoveDataPattern = '(?:' + '(?!' + MoveHeaderPattern + ')' + '(?: ){5,}.*' + ')';
+  var MoveDataPattern = '(?:    ' // 4 spaces
+   +  '(?:  ' // 4+2 spaces
+   +    '\\[(?:'+ floatPattern + '|-|CF|CL)(?: (?:'+ floatPattern + '|-|CF|CL))+\\]'
+   +  ')|'
+   +  '(?:   ' // 4+3 spaces
+   +    '(?:'+ floatPattern + '|-|CF|CL)(?: (?:'+ floatPattern + '|-|CF|CL))+'
+   +  ')|'
+   +  '(?:    '  // 4+4 spaces
+   +    '(?:\\d+-ply cubeful prune \\[\w+ class\\])|'
+   +    '(?:Full cubeful rollout with var\\.redn\\.)|'
+   +    '(?:\\d+ games, Mersenne Twister dice gen\\. with seed \\d+ and quasi-random dice)|' 
+   +    '(?:Play: \\w+ class \\d+-ply cubeful prune \\[\\w+ class\\])|'
+   +    '(?:keep the first \\d+ \\d+-ply moves and up to \\d+ more moves within equity 0\\.\\d+)|'
+   +    '(?:Skip pruning for \\d+-ply moves\\.)|'
+   +    '(?:Cube: \\d+-ply cubeful prune \\[\\w+ class\\])'
+   +  ')'
+   +')';
+  debug(MoveDataPattern);
   var MoveDataRegExp = new RegExp(MoveDataPattern);
   
   var MoveListingPattern = MoveHeaderPattern + Line + '?' + '(:?' + MoveDataPattern + Line +'?'+ ')*';
   var MoveListingRegExp = new RegExp(MoveListingPattern, 'g');
 6
   function moveFinder(text){
-    return text.match(MoveListingRegExp);
+    var m = text.match(MoveListingRegExp);
+    debug(m);
+    return m;
   };
 
   function moveList(r, mv, odd){

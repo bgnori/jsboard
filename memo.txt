@@ -874,8 +874,9 @@ move listに関係するRegexpに
 -> CRLFなしに対応... ?をつける。
 -> Headerの先読み否定をDataにつける。
 
+    +   '(?:'+ floatPattern + '|-|CF|CL)(?: (?:'+ floatPattern + '|-|CF|CL))+'
 
-
+(?:floatPattern |-|CF|CL)(?: (?:floatPattern|-|CF|CL))+
 
 
 
