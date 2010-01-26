@@ -8,6 +8,6 @@ from wsgiref.simple_server import make_server
 from jsboard.move import app
 
 
-httpd = make_server('', 8002, app);
+httpd = make_server('localhost', 8002, app);
 
 httpd.serve_forever();
