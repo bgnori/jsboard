@@ -31,11 +31,15 @@ def app(environ, start_response):
     stdout = StringIO()
     q = cgi.parse_qs(environ['QUERY_STRING'])
 
-    gnubgid = q['gnubgid'][0]
-    movetext = q['move'][0]
+    EMPTY = ('',)
+    gnubgid = q.get('gnubgid', EMPTY)[0]
+    move = q.get('move', EMPTY)[0]
+    cube = q.get('cube', EMPTY)[0]
+    pickupdice = q.get('pickupdice', EMPTY)[0]
+    dice= q.get('dice', EMPTY)[0]
     pid, mid = gnubgid.split(':')
 
-    print >>sys.stderr, 'got:', gnubgid, movetext
+    print >>sys.stderr, 'got: gnubgid=%s, move=%s, cube=%s pickupdice=%s dice=%s'%(gnubgid, move, cube, pickupdice,  dice)
     print >>sys.stderr, pid, mid
     assert len(pid) == 14
     #01234567890123
@@ -47,25 +51,47 @@ def app(environ, start_response):
     b = BoardEditor()
     decode(b, pid, mid)
   
-    moves = movetext.split(' ')
-    mf = MoveFactory(b)
-
-    for mv in moves:
-      print >>sys.stderr, mv
-      if mv:
-        d = moveRegExp.search(mv).groupdict()
-        n = int(d['multi'] or '1')
-        while n > 0:
-          found = mf.guess_your_multiple_pms(move_pton(d['src']),
-                                             move_pton(d['dest']))
-          assert found
-          #assert not d['hitting'] or n!=1 or found.is_hitting 
-          mf.add(found)
-          #mf.append(found)
-          n = n -1;
-
-    assert mf.is_leagal_to_pickup_dice()
-    p, m = encode(mf.board)
+    print b
+    if b.is_leagal_to_move(b.on_action):
+      assert move 
+      moves = move.split(' ')
+      mf = MoveFactory(b)
+    
+      for mv in moves:
+        print >>sys.stderr, mv
+        if mv:
+          m = moveRegExp.search(mv)
+          if not m:
+            break
+          d = m.groupdict()
+          print d
+          n = int(d['multi'] or '1')
+          while n > 0:
+            print d['src'], d['dest']
+            found = mf.guess_your_multiple_pms(move_pton(d['src']),
+                                               move_pton(d['dest']))
+            assert found
+            #assert not d['hitting'] or n!=1 or found.is_hitting 
+            mf.add(found)
+            #mf.append(found)
+            n = n -1;
+    
+      assert mf.is_leagal_to_pickup_dice()
+    
+      if pickupdice:
+        print 'pickupdice', pickupdice
+        mf.pickupdice()
+      print mf.board
+      p, m = encode(mf.board)
+    elif b.is_leagal_to_roll(b.on_action):
+      if cube == 'no double' and dice:
+        b.rolled = (int(dice[0]), int(dice[1]))
+      elif cube == 'double':
+        pass
+      print b
+      p, m = encode(b)
+    else:
+      pass
     assert len(p) == 14
     assert len(m) == 12
 

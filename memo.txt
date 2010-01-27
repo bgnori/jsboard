@@ -895,4 +895,36 @@ m フラグは複数行の入力文字列を複数の行として扱うように
    +      '(?:(?: ){0,3}(?:\\S))+'
 
 
+doubleを扱えるようにしよう。
+
+bglibをいじらざるを得ない。というか実装がない。
+board editor
+board
+
+MoveFactory:pickupdiceがない。
+
+serverから返ってきた
+sending: jsonp1264583675984({"status": true, "gnubgid":
+"4HPhASjgc/ABMA:MAmgAAAAAAAA"});
+をimage.backgammonbase.comがレンダーできていない。
+
+http://image.backgammonbase.com/image?gnubgid=4HPhASjgc%2FABMA%3AMAmgAAAAAAAA&height=300&width=400&css=minimal&format=png
+
+
+on_inner_actionとon_actionが不整合になっていた。
+
+
+ムーブの完了判定にバグがある。
+
+Traceback (most recent call last):
+  File "/usr/lib/python2.4/site-packages/wsgiref/handlers.py", line 92, in run
+    self.result = application(self.environ, self.start_response)
+  File "move.py", line 77, in app
+    assert mf.is_leagal_to_pickup_dice()
+  File "/home/nori/Desktop/work/bglib/bglib/bglib/model/move.py", line 220, in is_leagal_to_pickup_dice
+    assert len(mf.move) == 0
+AssertionError
+shinano.tonic-water.com - - [27/Jan/2010 23:56:14] "GET /?callback=jsonp1264600277143&_=1264604174656&move=6%2F4+6%2F4+6%2F4+&gnubgid=tNsAgBvH%2Bw4AAA%3AMAGpAAAAAAAA&pickupdice=true HTTP/1.1" 500 59
+
+
 

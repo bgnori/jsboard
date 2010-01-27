@@ -1,13 +1,13 @@
 /* 
-  This script requires jQuery 1.3.2   
+  This script requires jQuery 1.4.0
   Copyright 2009 Noriyuki Hosaka bgnori@gmail.com
 */
 
 
 (function($){
-  function debug(msg){
+  function debug(){
     if (window['console']){
-      console.log(msg);
+      console.log.apply(null, arguments);
     };
   };
 
@@ -205,7 +205,113 @@
     });
   };
   
-  function editor(n){
+
+  var matMovePattern = '(?:[1-6][1-6]:(?: ' + movePattern + ')* *)';
+  var matMoveRegExp = new RegExp(matMovePattern, 'g');
+  var matLinePattern = '(?:[1-9 ][0-9 ][0-9]\\) ' + matMovePattern + matMovePattern + ')';
+  //  1) 41: 24/23 13/9              43: 13/9 24/21              
+  var matLineRexExp = new RegExp(matLinePattern, 'g');
+
+  function matFinder(text){
+    var gamenavi = {};
+    var lines = text.match(matLineRexExp);
+    for (n in lines){
+      var k = lines[n];
+      //var nth = $.trim(k.slice(0,3));
+      var nth = parseInt(k.slice(0,3));
+      //debug('%d %d', n, nth);
+      var pair = k.match(matMoveRegExp)
+      //debug('%d %s %s', n, pair[0].slice(0, 2), pair[0].match(moveRegexp));
+      //debug('%d %s %s', n, pair[1].slice(0, 2), pair[1].match(moveRegexp));
+      var movenamvi = {};
+      movenamvi[0] = {
+        cube: 0,
+        dice: pair[0].slice(0, 2), 
+        move: (pair[0].match(moveRegexp)|| {0:0})[0],
+      };
+      movenamvi[1] = {
+        cube: 0,
+        dice: pair[1].slice(0, 2), 
+        move: (pair[1].match(moveRegexp)|| {0:0})[0],
+      };
+      movenamvi.nth = nth;
+
+      gamenavi[n] = movenamvi;
+    };
+
+    return gamenavi;
+  };
+
+  function matviewer(n){
+    var root = $(this);
+    var text = root.text();
+    var mat = matFinder(text);
+
+    var root = $(this);
+    var gnubgid = '4HPwATDgc/ABMA:cAmmAAAAAAAA';
+    image(root, gnubgid, jsboard.style, '#matviewer');
+    var nth = 0;
+    var on_action = 0;
+    var cube_action = false;
+
+    var img = root.find("img");
+    var w = img.attr('width');
+    var h = img.attr('height');
+    img.click(function(){
+      var movenamvi = mat[nth][on_action];
+      debug(movenamvi);
+      var data;
+      if (cube_action){
+        data = {
+          'cube' : 'no double',
+          'dice' : movenamvi.dice, 
+          'gnubgid' : gnubgid,
+          'pickupdice' : false
+        };
+      }else{
+        data = {
+          'move' : movenamvi.move, 
+          'gnubgid' : gnubgid,
+          'pickupdice' : true
+        };
+      };
+      $.ajax({
+        url: jsboard.config.move_api_url,
+        dataType : "jsonp",
+        cache : false,
+        'data' : data, 
+        success : 
+        function (data, dataType){
+          img.attr('src', imageURL(data.gnubgid, h, w, jsboard.style));
+          gnubgid = data.gnubgid;
+          if (on_action){
+            if(cube_action){
+              // cube done.
+              cube_action = false;
+            }else{
+              // moved
+              cube_action = true;
+              on_action = 0;
+              nth += 1;
+            };
+          }else{
+            if(cube_action){
+              // cube done.
+              cube_action = false;
+            }else{
+              // moved
+              cube_action = true;
+              on_action = 1;
+            };
+          };
+        },
+      });
+
+    });
+
+  };
+
+  function viewer(n){
     var id_str =  'jsboard'+n;
 
     var root = $(this);
@@ -219,18 +325,24 @@
     image(root, gnubgid, jsboard.style, '#'+id_str);
 
     root.append($('<map name="' + id_str + '" id="'+ id_str + '" />'));
-    var map = $('#' + id_str);
-    area(map, "13pt", "rect", "25,5,43,93", "13pt");
-    area(map, "7pt", "rect", "115,139,133,227", "7pt");
-    area(map, "yourbar", "rect", "133,116,158,228", "yourbar");
-
 
     var mv;
     for (n in  mvlist){
       mv = mvlist[n];
       moveList(root, mv, n%2);
     };
-  }
+  };
+
+  function player(n){
+    var map = $('#' + id_str);
+    area(map, "13pt", "rect", "25,5,43,93", "13pt");
+    area(map, "7pt", "rect", "115,139,133,227", "7pt");
+    area(map, "yourbar", "rect", "133,116,158,228", "yourbar");
+  };
+
+  function editor(n){
+  };
+
 
   function loadCSS(src, delay, onload, error){
     $.ajax({
@@ -255,7 +367,8 @@
     loadCSS(jsboard.css, jsboard.delay, 
     function(){
       debug('processing.');
-      $('.jsboard').each(editor);
+      $('.jsboard').each(viewer);
+      $('.jsmatviewer').each(matviewer);
     }, 
     function (XMLHttpRequest, testStatus, errorThrown){
       debug('css load failed: '+ jsboard.css);
