@@ -53,7 +53,7 @@ def app(environ, start_response):
   
     print b
     if b.is_leagal_to_move(b.on_action):
-      assert move 
+      #ugh! can be empty, DANCE ! assert move 
       moves = move.split(' ')
       mf = MoveFactory(b)
     
