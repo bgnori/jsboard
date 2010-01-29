@@ -70,14 +70,14 @@
   var rMatchID = new RegExp("Match ID: ([A-Za-z0-9/+]{12})")
   var rGnubgID = new RegExp("[A-Za-z0-9/+]{14}:[A-Za-z0-9/+]{12}")
 
-  function gnubgIDFinder(text){
+  function gnubgIDFinder(t){
     var pos;
     var match;
     var e;
-    if (text) {
+    if (t) {
       try{
-        pos = text.match(rPositionID)[1];
-        match = text.match(rMatchID)[1];
+        pos = t.match(rPositionID)[1];
+        match = t.match(rMatchID)[1];
         if ( pos && match ){
           return pos + ':' + match;
         };
@@ -85,7 +85,7 @@
         //surpress error try other.
       };
       try{
-        var gnubgid = text.match(rGnubgID);
+        var gnubgid = t.match(rGnubgID);
         if (gnubgid){
           return gnubgid;
         };
@@ -142,8 +142,8 @@
   var MoveHeaderOrDataPattern = MoveHeaderPattern + '|' + MoveDataPattern ;
   var MoveHeaderOrDataRegExp = new RegExp(MoveHeaderOrDataPattern, 'g');
 
-  function moveFinder(text){
-    var m = text.match(MoveListingRegExp);
+  function moveFinder(t){
+    var m = t.match(MoveListingRegExp);
     debug(m);
     return m;
   };
@@ -207,33 +207,60 @@
   
 
   var matMovePattern = '(?:[1-6][1-6]:(?: ' + movePattern + ')* *)';
-  var matMoveRegExp = new RegExp(matMovePattern, 'g');
-  var matLinePattern = '(?:[1-9 ][0-9 ][0-9]\\) ' + matMovePattern + matMovePattern + ')';
+  var matMoveRegExp = new RegExp(matMovePattern);
+  var matCubePattern = '(?: (Takes *)|(Doubles => \\d+ *)|(Drops *))'
+  var matCubeRegExp = new RegExp(matCubePattern);
+  var matResignPattern = '(?:( [?]{3} *))';
+  var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + ')';
+  var matActionRegExp = new RegExp(matActionPattern, 'g')
+  var matLinePattern = '(?:[1-9 ][0-9 ][0-9]\\) ' + matActionPattern + matActionPattern + ')';
   //  1) 41: 24/23 13/9              43: 13/9 24/21              
+  //  8) 53: 24/21 13/8               Doubles => 2               
+  //  9)  Takes                      62: 13/7 13/11              
   var matLineRexExp = new RegExp(matLinePattern, 'g');
 
-  function matFinder(text){
+  function matAction(t){
+    if (t != ''){
+      var move = '';
+      var cube = '';
+      var resign = '';
+      move = (t.match(matMoveRegExp)||{0:''})[0];
+      if (move != ''){
+        debug(move);
+        return {
+          'cube': 0,
+          dice: move.slice(0, 2), 
+          'move': (move.match(moveRegexp)|| {0:''})[0],
+        };
+      };
+      cube = (t.match(matCubeRegExp)||{0:''})[0];
+      if (cube != ''){
+        return {
+          'cube': cube,
+        };
+      };
+    }else{
+      return {};
+    };
+  };
+
+  function matFinder(t){
     var gamenavi = {};
-    var lines = text.match(matLineRexExp);
+    var lines = t.match(matLineRexExp);
     for (n in lines){
       var k = lines[n];
       //var nth = $.trim(k.slice(0,3));
       var nth = parseInt(k.slice(0,3));
       //debug('%d %d', n, nth);
-      var pair = k.match(matMoveRegExp)
+      var pair = k.match(matActionRegExp)
       //debug('%d %s %s', n, pair[0].slice(0, 2), pair[0].match(moveRegexp));
       //debug('%d %s %s', n, pair[1].slice(0, 2), pair[1].match(moveRegexp));
       var movenamvi = {};
-      movenamvi[0] = {
-        cube: 0,
-        dice: pair[0].slice(0, 2), 
-        move: (pair[0].match(moveRegexp)|| {0:0})[0],
-      };
-      movenamvi[1] = {
-        cube: 0,
-        dice: pair[1].slice(0, 2), 
-        move: (pair[1].match(moveRegexp)|| {0:0})[0],
-      };
+      debug(pair);
+      debug(pair[0]);
+      debug(pair[1]);
+      movenamvi[0] = matAction(pair[0]);
+      movenamvi[1] = matAction(pair[1]);
       movenamvi.nth = nth;
 
       gamenavi[n] = movenamvi;
@@ -242,71 +269,118 @@
     return gamenavi;
   };
 
-  function matviewer(n){
+  function make_matviewer(n){
     var root = $(this);
     var text = root.text();
     var mat = matFinder(text);
-
     var root = $(this);
-    var gnubgid = '4HPwATDgc/ABMA:cAmmAAAAAAAA';
-    image(root, gnubgid, jsboard.style, '#matviewer');
-    var nth = 0;
-    var on_action = 0;
-    var cube_action = false;
 
-    var img = root.find("img");
-    var w = img.attr('width');
-    var h = img.attr('height');
-    img.click(function(){
-      var movenamvi = mat[nth][on_action];
-      debug(movenamvi);
-      var data;
-      if (cube_action){
-        data = {
-          'cube' : 'no double',
-          'dice' : movenamvi.dice, 
-          'gnubgid' : gnubgid,
-          'pickupdice' : false
+    var img;
+    var h;
+    var w;
+
+    var cursor = {
+      nth: undefined,
+      on_action: undefined,
+      cube_action: undefined,
+      gnubgid: undefined,
+      movenamvi: undefined,
+      mat: undefined,
+      bind: function(mat, on_success){
+        var self = this; //ugh!
+        debug(mat);
+        this.mat = mat;
+        if (this.mat[0][0].dice){
+          this.nth = 0;
+          this.on_action = 0;
+          this.cube_action = true;
+        }else{
+          this.nth = 0;
+          this.on_action = 1;
+          this.cube_action = true;
         };
-      }else{
-        data = {
-          'move' : movenamvi.move, 
-          'gnubgid' : gnubgid,
-          'pickupdice' : true
-        };
-      };
-      $.ajax({
-        url: jsboard.config.move_api_url,
-        dataType : "jsonp",
-        cache : false,
-        'data' : data, 
-        success : 
-        function (data, dataType){
-          img.attr('src', imageURL(data.gnubgid, h, w, jsboard.style));
-          gnubgid = data.gnubgid;
-          if (on_action){
-            if(cube_action){
-              // cube done.
-              cube_action = false;
-            }else{
-              // moved
-              cube_action = true;
-              on_action = 0;
-              nth += 1;
-            };
-          }else{
-            if(cube_action){
-              // cube done.
-              cube_action = false;
-            }else{
-              // moved
-              cube_action = true;
-              on_action = 1;
-            };
+        $.ajax({
+          url: jsboard.config.move_api_url,
+          dataType : "jsonp",
+          cache : false,
+          'data' : {
+            'new': '0:0-0/5',
+          }, 
+          async: false,
+          success : function(data, dataType){
+            self.gnubgid = data.gnubgid; //ugh!
+            on_success();
+          }
+        });
+      },
+      read: function(){
+        var movenamvi = this.mat[this.nth][this.on_action];
+        debug(movenamvi, this.nth, this.on_action);
+        if (this.cube_action){
+          data = {
+            'cube' : 'no double',
+            'dice' : movenamvi.dice, 
+            'gnubgid' : this.gnubgid,
+            'pickupdice' : false
           };
-        },
-      });
+        }else{
+          data = {
+            'move' : movenamvi.move, 
+            'gnubgid' : this.gnubgid,
+            'pickupdice' : true
+          };
+        };
+        return data;
+      },
+      next: function(on_success){
+        var self = this; // ugh!
 
+        $.ajax({
+          url: jsboard.config.move_api_url,
+          dataType : "jsonp",
+          cache : false,
+          'data' : this.read(),
+          success : function (data, dataType){
+            self.gnubgid = data.gnubgid
+            on_success();
+          },
+        });
+        if (this.on_action){
+          if(this.cube_action){
+            // cube done.
+            this.cube_action = false;
+          }else{
+            // moved
+            this.cube_action = true;
+            this.on_action = 0;
+            this.nth += 1;
+          };
+        }else{
+          if(this.cube_action){
+            // cube done.
+            this.cube_action = false;
+          }else{
+            // moved
+            this.cube_action = true;
+            this.on_action = 1;
+          };
+        };
+      },
+    };
+
+
+    cursor.bind(mat, function(){
+      debug('cursor:bind with:', cursor);
+      image(root, cursor.gnubgid, jsboard.style, '#matviewer');
+      img = root.find("img");
+      w = img.attr('width');
+      h = img.attr('height');
+      img.attr('src', imageURL(cursor.gnubgid, h, w, jsboard.style));
+      img.click(function(){
+        cursor.next(function(){
+          img.attr('src', imageURL(cursor.gnubgid, h, w, jsboard.style));
+        });
+      });
     });
 
   };
@@ -368,7 +442,7 @@
     function(){
       debug('processing.');
       $('.jsboard').each(viewer);
-      $('.jsmatviewer').each(matviewer);
+      $('.jsmatviewer').each(make_matviewer);
     }, 
     function (XMLHttpRequest, testStatus, errorThrown){
       debug('css load failed: '+ jsboard.css);
