@@ -269,17 +269,8 @@
     return gamenavi;
   };
 
-  function make_matviewer(n){
-    var root = $(this);
-    var text = root.text();
-    var mat = matFinder(text);
-    var root = $(this);
-
-    var img;
-    var h;
-    var w;
-
-    var cursor = {
+  function matCursor(){
+    return {
       nth: undefined,
       on_action: undefined,
       cube_action: undefined,
@@ -367,9 +358,17 @@
         };
       },
     };
+  };
 
+  function make_matviewer(n){
+    var img;
+    var h;
+    var w;
+    var root = $(this);
+    var text = root.text();
+    var cursor = matCursor();
 
-    cursor.bind(mat, function(){
+    cursor.bind(matFinder(text), function(){
       debug('cursor:bind with:', cursor);
       image(root, cursor.gnubgid, jsboard.style, '#matviewer');
       img = root.find("img");
