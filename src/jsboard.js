@@ -205,6 +205,60 @@
     });
   };
   
+  var matHeaderNamePattern = 
+        '(?:' 
+      +   'Site|'
+      +   'Match ID|'
+      +   'Player 1|'
+      +   'Player 2|'
+      +   'Player 1 Elo|'
+      +   'Player 2 Elo|'
+      +   'EventDate|'
+      +   'EventTime|'
+      +   'Variation|'
+      +   'Unrated|'
+      +   'Crawford|'
+      +   'CubeLimit'
+      + ')'
+  var matHeaderNameRegExp = new RegExp(matHeaderNamePattern);
+  var matHeaderValuePattern = '"[^"]+"';
+  var matHeaderValueRegExp = new RegExp(matHeaderValuePattern);
+  var matHeaderPattern = 
+        '(?:; \\['
+      + matHeaderNamePattern
+      + ' ' // There is a white space!!
+      + matHeaderValuePattern
+      + '\\])';
+/*
+; [Site "eXtreme Gammon"]
+; [Match ID "238991235"]
+; [Player 1 "Jake Jacobs"]
+; [Player 2 "Hosaka Noriyuki"]
+; [Player 1 Elo "1600.00/0"]
+; [Player 2 Elo "1600.00/0"]
+; [EventDate "2009.10.03"]
+; [EventTime "21.53"]
+; [Variation "Backgammon"]
+; [Unrated "Off"]
+; [Crawford "On"]
+; [CubeLimit "1024"]
+*/
+
+  var matHeaderRegExp = new RegExp(matHeaderPattern, 'g');
+  
+  var matMatchHeaderPattern = '(?:\\d+ point match)' //ugh! money game
+  var matMatchHeaderRegExp = new RegExp(matMatchHeaderPattern);
+  var matGameNthPattern = '(?: Game \\d+)';
+  var matGameNthRegExp = new RegExp(matGameNthPattern, 'g');
+  var matPlayerNameWithScorePattern ='(?:[ a-zA-Z]+: \\d+)';
+  var matPlayerNameWithScoreRegExp = new RegExp(matPlayerNameWithScorePattern, 'g');
+  var matGameHeaderPattern = '(?:' 
+                            + matGameNthPattern
+                            + Line + '? '
+                            + matPlayerNameWithScorePattern
+                            + matPlayerNameWithScorePattern
+                            + Line + '?' + ')';
+  var matGameHeaderRegExp = new RegExp(matGameHeaderPattern, 'g');
 
   var matMovePattern = '(?:[1-6][1-6]:(?: ' + movePattern + ')* *)';
   var matMoveRegExp = new RegExp(matMovePattern);
@@ -212,12 +266,17 @@
   var matCubeRegExp = new RegExp(matCubePattern);
   var matResignPattern = '(?:( [?]{3} *))';
   var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + ')';
-  var matActionRegExp = new RegExp(matActionPattern, 'g')
+  var matActionRegExp = new RegExp(matActionPattern, 'g');
   var matLinePattern = '(?:[1-9 ][0-9 ][0-9]\\) ' + matActionPattern + matActionPattern + ')';
   //  1) 41: 24/23 13/9              43: 13/9 24/21              
   //  8) 53: 24/21 13/8               Doubles => 2               
   //  9)  Takes                      62: 13/7 13/11              
-  var matLineRexExp = new RegExp(matLinePattern, 'g');
+  var matLineRegExp = new RegExp(matLinePattern, 'g');
+  var matGamePattern = '(?:' + matGameHeaderPattern + Line + '?'
+                     +       '(?:' + matLinePattern + Line + '?)+'
+                     + ')';
+
+  var matGameRegExp = new RegExp(matGamePattern, 'g');
 
   function matAction(t){
     if (t != ''){
@@ -244,32 +303,64 @@
     };
   };
 
-  function matFinder(t){
+  function matGame(t){
     var gamenavi = {};
-    var lines = t.match(matLineRexExp);
+    var lines = t.match(matLineRegExp);
     for (n in lines){
-      var k = lines[n];
-      //var nth = $.trim(k.slice(0,3));
-      var nth = parseInt(k.slice(0,3));
-      //debug('%d %d', n, nth);
-      var pair = k.match(matActionRegExp)
-      //debug('%d %s %s', n, pair[0].slice(0, 2), pair[0].match(moveRegexp));
-      //debug('%d %s %s', n, pair[1].slice(0, 2), pair[1].match(moveRegexp));
       var movenamvi = {};
-      debug(pair);
-      debug(pair[0]);
-      debug(pair[1]);
+      var k = lines[n];
+      var nth = parseInt(k.slice(0,3));
+      var pair = k.match(matActionRegExp)
       movenamvi[0] = matAction(pair[0]);
       movenamvi[1] = matAction(pair[1]);
       movenamvi.nth = nth;
-
       gamenavi[n] = movenamvi;
     };
-
     return gamenavi;
   };
 
-  function matCursor(){
+  function matHeader(xs){
+    var r = {};
+    debug('matHeader', xs);
+    var i;
+    for (i in xs){
+      var n = xs[i].match(matHeaderNameRegExp)[0];
+      var v = xs[i].match(matHeaderValueRegExp)[0];
+      v = v.slice(1, -1);
+      debug(n, v);
+      r[n] = v;
+    };
+    return r;
+  };
+
+  function matFile(t){
+    var matchnavi = {};
+    var xs;
+    var i;
+    matchnavi.headers = matHeader(t.match(matHeaderRegExp));
+    matchnavi.match_length = parseInt(t.match(matMatchHeaderRegExp)[0]);
+    matchnavi.games = {};
+    xs = t.match(matGameRegExp);
+    for (i in xs){
+      var h = (xs[i].match(matGameHeaderRegExp))[0];
+      var p = h.match(matPlayerNameWithScoreRegExp);
+      var score = {};
+      score[0]=  parseInt(p[0].match('\\d+$'));
+      score[1]=  parseInt(p[1].match('\\d+$'));
+      matchnavi.games[i] = {
+        name: h.match(matGameNthRegExp)[0], 
+        game: matGame(xs[i]),
+        score: score,
+      };
+    };
+    return matchnavi;
+  };
+
+  function matMatchCursor(){
+
+  };
+
+  function matGameCursor(){
     return {
       nth: undefined,
       on_action: undefined,
@@ -279,7 +370,6 @@
       mat: undefined,
       bind: function(mat, on_success){
         var self = this; //ugh!
-        debug(mat);
         this.mat = mat;
         if (this.mat[0][0].dice){
           this.nth = 0;
@@ -366,9 +456,9 @@
     var w;
     var root = $(this);
     var text = root.text();
-    var cursor = matCursor();
+    var cursor = matGameCursor();
 
-    cursor.bind(matFinder(text), function(){
+    cursor.bind(matFile(text), function(){
       debug('cursor:bind with:', cursor);
       image(root, cursor.gnubgid, jsboard.style, '#matviewer');
       img = root.find("img");
