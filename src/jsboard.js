@@ -303,8 +303,8 @@
     };
   };
 
-  function matGame(t){
-    var gamenavi = {};
+  function matMoves(t){
+    var r = {};
     var lines = t.match(matLineRegExp);
     for (n in lines){
       var movenamvi = {};
@@ -314,9 +314,9 @@
       movenamvi[0] = matAction(pair[0]);
       movenamvi[1] = matAction(pair[1]);
       movenamvi.nth = nth;
-      gamenavi[n] = movenamvi;
+      r[n] = movenamvi;
     };
-    return gamenavi;
+    return r;
   };
 
   function matHeader(xs){
@@ -347,71 +347,88 @@
       var score = {};
       score[0]=  parseInt(p[0].match('\\d+$'));
       score[1]=  parseInt(p[1].match('\\d+$'));
+      n = h.match(matGameNthRegExp)[0];
       matchnavi.games[i] = {
-        name: h.match(matGameNthRegExp)[0], 
-        game: matGame(xs[i]),
-        score: score,
+        name: n,
+        match_length: matchnavi.match_length,
+        nth: parseInt(n.slice(6)),
+        moves: matMoves(xs[i]),
+        score: score
       };
+      debug(matchnavi.games[i]);
     };
     return matchnavi;
   };
 
-  function matMatchCursor(){
-
-  };
 
   function matGameCursor(){
     return {
-      nth: undefined,
-      on_action: undefined,
-      cube_action: undefined,
-      gnubgid: undefined,
-      movenamvi: undefined,
-      mat: undefined,
-      bind: function(mat, on_success){
+      nth: null,
+      on_action: null,
+      cube_action: null,
+      gnubgid: null,
+      movenamvi: null,
+      game: null,
+      bind: function(game, on_success){
         var self = this; //ugh!
-        this.mat = mat;
-        if (this.mat[0][0].dice){
-          this.nth = 0;
-          this.on_action = 0;
-          this.cube_action = true;
+        debug(game);
+        self.game = game;
+        debug(self.game);
+        if (self.game.moves[0][0].dice){
+          self.nth = 0;
+          self.on_action = 0;
+          self.cube_action = true;
         }else{
-          this.nth = 0;
-          this.on_action = 1;
-          this.cube_action = true;
+          self.nth = 0;
+          self.on_action = 1;
+          self.cube_action = true;
         };
+        debug('matGameCursor:bind', self);
         $.ajax({
           url: jsboard.config.move_api_url,
           dataType : "jsonp",
           cache : false,
           'data' : {
-            'new': '0:0-0/5',
+            'new': (String(self.nth) + ':' 
+                    + String(self.game.score[0]) 
+                    + '-' 
+                    + String(self.game.score[1]) 
+                    + '/'
+                    + String(self.game.match_length))
           }, 
-          async: false,
           success : function(data, dataType){
             self.gnubgid = data.gnubgid; //ugh!
             on_success();
           }
         });
+        return self;
       },
       read: function(){
-        var movenamvi = this.mat[this.nth][this.on_action];
-        debug(movenamvi, this.nth, this.on_action);
-        if (this.cube_action){
+        var self = this; //ugh!
+        var movenamvi = self.game.moves[self.nth][self.on_action];
+        debug(movenamvi, self.nth, self.on_action);
+        if (self.cube_action){
           data = {
             'cube' : 'no double',
             'dice' : movenamvi.dice, 
-            'gnubgid' : this.gnubgid,
+            'gnubgid' : self.gnubgid,
             'pickupdice' : false
           };
         }else{
           data = {
             'move' : movenamvi.move, 
-            'gnubgid' : this.gnubgid,
+            'gnubgid' : self.gnubgid,
             'pickupdice' : true
           };
         };
         return data;
+      },
+      isDone: function(){
+        var self = this; // ugh!
+        if (self.game[self.nth] == undefined){
+          return true;
+        };
+        return false;
       },
       next: function(on_success){
         var self = this; // ugh!
@@ -420,33 +437,78 @@
           url: jsboard.config.move_api_url,
           dataType : "jsonp",
           cache : false,
-          'data' : this.read(),
+          'data' : self.read(),
           success : function (data, dataType){
-            self.gnubgid = data.gnubgid
+            self.gnubgid = data.gnubgid;
             on_success();
           },
         });
-        if (this.on_action){
-          if(this.cube_action){
+        if (self.on_action){
+          if(self.cube_action){
             // cube done.
-            this.cube_action = false;
+            self.cube_action = false;
           }else{
             // moved
-            this.cube_action = true;
-            this.on_action = 0;
-            this.nth += 1;
+            self.cube_action = true;
+            self.on_action = 0;
+            self.nth += 1;
           };
         }else{
-          if(this.cube_action){
+          if(self.cube_action){
             // cube done.
-            this.cube_action = false;
+            self.cube_action = false;
           }else{
             // moved
-            this.cube_action = true;
-            this.on_action = 1;
+            self.cube_action = true;
+            self.on_action = 1;
           };
         };
+      }
+    };
+  };
+
+  function matMatchCursor(){
+    return {
+      matchnavi: null,
+      current: null,
+      nth: null,
+      on_success: null,
+      gnubgid: null,
+      bind: function(matchnavi, on_success){
+        var self = this;
+        debug('matMatchCursor:bind', self);
+        self.matchnavi = matchnavi;
+        self.on_success = on_success;
+        self.nth = 0;
+        self.current = matGameCursor();
+        debug('matMatchCursor:bind', self);
+        self.current.bind(self.matchnavi.games[self.nth], function(){
+          debug(self);
+          self.gnubgid = self.current.gnubgid;
+          self.on_success();
+        });
+        return self;
       },
+      isDone: function(){
+        return false;
+      },
+      next: function(on_success){
+        var self = this;
+        if (self.current.isDone()){
+          self.nth += 1;
+          if (self.matchnavi.games[self.nth] == undefined){
+            debug('end of match');
+          }else{
+            self.current = matGameCursor();
+            self.current.bind(self.matchnavi.games[self.nth], self.on_success);
+          };
+        };
+        self.current.next(function(){
+          self.gnubgid = self.current.gnubgid;
+          on_success();
+        });
+        return self;
+      }
     };
   };
 
@@ -456,7 +518,7 @@
     var w;
     var root = $(this);
     var text = root.text();
-    var cursor = matGameCursor();
+    var cursor = matMatchCursor();
 
     cursor.bind(matFile(text), function(){
       debug('cursor:bind with:', cursor);

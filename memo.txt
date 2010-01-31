@@ -927,4 +927,18 @@ AssertionError
 shinano.tonic-water.com - - [27/Jan/2010 23:56:14] "GET /?callback=jsonp1264600277143&_=1264604174656&move=6%2F4+6%2F4+6%2F4+&gnubgid=tNsAgBvH%2Bw4AAA%3AMAGpAAAAAAAA&pickupdice=true HTTP/1.1" 500 59
 
 
+とりあえずできたら return self;を追加してchainでどこまで変わるかとか
+Constructorの書き方を変えるとかやってみる。
+
+selfはまずいならthatにするか。
+selfは予約語ではない。high lightされて気持ち悪いが。
+
+bindのon_successがmatMatchCursorとmatGameCursorで異なる。
+
+
+
+
+
+
+
 
