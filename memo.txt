@@ -936,9 +936,10 @@ selfは予約語ではない。high lightされて気持ち悪いが。
 bindのon_successがmatMatchCursorとmatGameCursorで異なる。
 
 
+MatchCursor:bindにわたすon_successでimageを生成すると、
+gameCursor:bindで複数回生成されて不味い。
 
-
-
+idがnullであるにもかかかわず、requestに使われている。
 
 
 

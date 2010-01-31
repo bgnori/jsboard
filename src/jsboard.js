@@ -307,14 +307,14 @@
     var r = {};
     var lines = t.match(matLineRegExp);
     for (n in lines){
-      var movenamvi = {};
+      var current_move = {};
       var k = lines[n];
       var nth = parseInt(k.slice(0,3));
       var pair = k.match(matActionRegExp)
-      movenamvi[0] = matAction(pair[0]);
-      movenamvi[1] = matAction(pair[1]);
-      movenamvi.nth = nth;
-      r[n] = movenamvi;
+      current_move[0] = matAction(pair[0]);
+      current_move[1] = matAction(pair[1]);
+      current_move.nth = nth;
+      r[n] = current_move;
     };
     return r;
   };
@@ -367,13 +367,14 @@
       on_action: null,
       cube_action: null,
       gnubgid: null,
-      movenamvi: null,
+      current_move: null,
       game: null,
-      bind: function(game, on_success){
+      on_success: null,
+      bind: function(game, on_success, after){
         var self = this; //ugh!
-        debug(game);
+        debug('matGameCursor:bind', self);
+        self.on_success = on_success;
         self.game = game;
-        debug(self.game);
         if (self.game.moves[0][0].dice){
           self.nth = 0;
           self.on_action = 0;
@@ -383,7 +384,6 @@
           self.on_action = 1;
           self.cube_action = true;
         };
-        debug('matGameCursor:bind', self);
         $.ajax({
           url: jsboard.config.move_api_url,
           dataType : "jsonp",
@@ -398,25 +398,26 @@
           }, 
           success : function(data, dataType){
             self.gnubgid = data.gnubgid; //ugh!
-            on_success();
+            after();
           }
         });
         return self;
       },
       read: function(){
         var self = this; //ugh!
-        var movenamvi = self.game.moves[self.nth][self.on_action];
-        debug(movenamvi, self.nth, self.on_action);
+        debug('matGameCursor:read', self);
+        var current_move = self.game.moves[self.nth][self.on_action];
+        debug(current_move, self.nth, self.on_action);
         if (self.cube_action){
           data = {
             'cube' : 'no double',
-            'dice' : movenamvi.dice, 
+            'dice' : current_move.dice, 
             'gnubgid' : self.gnubgid,
             'pickupdice' : false
           };
         }else{
           data = {
-            'move' : movenamvi.move, 
+            'move' : current_move.move, 
             'gnubgid' : self.gnubgid,
             'pickupdice' : true
           };
@@ -425,13 +426,16 @@
       },
       isDone: function(){
         var self = this; // ugh!
-        if (self.game[self.nth] == undefined){
+        if (typeof(self.game.moves[self.nth]) == 'undefined'){
+          debug('matGameCursor:isDone true', self);
           return true;
         };
+        debug('matGameCursor:isDone false', self);
         return false;
       },
-      next: function(on_success){
+      next: function(){
         var self = this; // ugh!
+        debug('matGameCursor:next', self);
 
         $.ajax({
           url: jsboard.config.move_api_url,
@@ -440,29 +444,29 @@
           'data' : self.read(),
           success : function (data, dataType){
             self.gnubgid = data.gnubgid;
-            on_success();
+            self.on_success();
+            if (self.on_action){
+              if(self.cube_action){
+                // cube done.
+                self.cube_action = false;
+              }else{
+                // moved
+                self.cube_action = true;
+                self.on_action = 0;
+                self.nth += 1;
+              };
+            }else{
+              if(self.cube_action){
+                // cube done.
+                self.cube_action = false;
+              }else{
+                // moved
+                self.cube_action = true;
+                self.on_action = 1;
+              };
+            };
           },
         });
-        if (self.on_action){
-          if(self.cube_action){
-            // cube done.
-            self.cube_action = false;
-          }else{
-            // moved
-            self.cube_action = true;
-            self.on_action = 0;
-            self.nth += 1;
-          };
-        }else{
-          if(self.cube_action){
-            // cube done.
-            self.cube_action = false;
-          }else{
-            // moved
-            self.cube_action = true;
-            self.on_action = 1;
-          };
-        };
       }
     };
   };
@@ -473,39 +477,46 @@
       current: null,
       nth: null,
       on_success: null,
-      gnubgid: null,
-      bind: function(matchnavi, on_success){
+      gnubgid: '',
+      subbind: function(after){
+        var self = this;
+        debug('matMatchCursor:subbind', self);
+        self.current = matGameCursor();
+        self.current.bind(self.matchnavi.games[self.nth], function(){
+          self.gnubgid = self.current.gnubgid;
+          self.on_success();
+        }, after);
+        return self;
+      },
+      bind: function(matchnavi, on_success, after){
         var self = this;
         debug('matMatchCursor:bind', self);
         self.matchnavi = matchnavi;
         self.on_success = on_success;
         self.nth = 0;
-        self.current = matGameCursor();
-        debug('matMatchCursor:bind', self);
-        self.current.bind(self.matchnavi.games[self.nth], function(){
-          debug(self);
-          self.gnubgid = self.current.gnubgid;
-          self.on_success();
-        });
+        self.subbind(after);
         return self;
       },
       isDone: function(){
+        debug('matMatchCursor:isDone', self);
         return false;
       },
-      next: function(on_success){
+      next: function(){
         var self = this;
+        debug('matMatchCursor:next', self);
         if (self.current.isDone()){
           self.nth += 1;
           if (self.matchnavi.games[self.nth] == undefined){
             debug('end of match');
           }else{
-            self.current = matGameCursor();
-            self.current.bind(self.matchnavi.games[self.nth], self.on_success);
+            self.subbind(function(){
+              //after
+            });
           };
         };
         self.current.next(function(){
           self.gnubgid = self.current.gnubgid;
-          on_success();
+          self.on_success();
         });
         return self;
       }
@@ -519,21 +530,19 @@
     var root = $(this);
     var text = root.text();
     var cursor = matMatchCursor();
+    
+    image(root, '', jsboard.style, '#matviewer');
+    img = root.find("img");
+    w = img.attr('width');
+    h = img.attr('height');
 
     cursor.bind(matFile(text), function(){
-      debug('cursor:bind with:', cursor);
-      image(root, cursor.gnubgid, jsboard.style, '#matviewer');
-      img = root.find("img");
-      w = img.attr('width');
-      h = img.attr('height');
       img.attr('src', imageURL(cursor.gnubgid, h, w, jsboard.style));
+    }, function(){
       img.click(function(){
-        cursor.next(function(){
-          img.attr('src', imageURL(cursor.gnubgid, h, w, jsboard.style));
-        });
+        cursor.next();
       });
     });
-
   };
 
   function viewer(n){
