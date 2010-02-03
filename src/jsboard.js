@@ -15,16 +15,14 @@
       style: "nature",
       delay: 50,
       css: "http://assets.backgammonbase.com/default.css",
-      config : {
-        move_api_url : "http://move.api.backgammonbase.com/",
-        debug: true,
-        },
+      move_api_url : "http://move.api.backgammonbase.com/",
+      debug: true,
   };
-  jsboard = jsboard || def;
+  jsboard.config = jsboard.config || def;
   $.extend(def, jsboard);
   jsboard = def;
   
-  function imageURL(gnubgid, height, width, css){
+  jsboard['imageURL'] = function (gnubgid, height, width, css){
     return 'http://image.backgammonbase.com/image?' + 
       'gnubgid=' +  encodeURIComponent(gnubgid) + 
       '&height='+height +
@@ -54,7 +52,7 @@
     //debug(h);
     img.attr("usemap", usemap);
     img.attr("alt", gnubgid);
-    img.attr("src", imageURL(gnubgid, h, w, css));
+    img.attr("src", jsboard.imageURL(gnubgid, h, w, css));
   };
 
   function area(map, id, shape, coords, alt){
@@ -66,18 +64,20 @@
   };
   
 
-  var rPositionID = new RegExp("Position ID: ([A-Za-z0-9/+]{14})")
-  var rMatchID = new RegExp("Match ID: ([A-Za-z0-9/+]{12})")
-  var rGnubgID = new RegExp("[A-Za-z0-9/+]{14}:[A-Za-z0-9/+]{12}")
-
-  function gnubgIDFinder(t){
+  jsboard['re'] = {};
+  jsboard['re']['gnubg'] = {
+    postionID: new RegExp("Position ID: ([A-Za-z0-9/+]{14})"),
+    matchID: new RegExp("Match ID: ([A-Za-z0-9/+]{12})"),
+    gnubgID: new RegExp("[A-Za-z0-9/+]{14}:[A-Za-z0-9/+]{12}")
+  };
+  jsboard['re']['gnubg']['find'] = function(t){
     var pos;
     var match;
     var e;
     if (t) {
       try{
-        pos = t.match(rPositionID)[1];
-        match = t.match(rMatchID)[1];
+        pos = t.match(jsboard.re.gnubg.postionID)[1];
+        match = t.match(jsboard.re.gnubg.matchID)[1];
         if ( pos && match ){
           return pos + ':' + match;
         };
@@ -85,7 +85,7 @@
         //surpress error try other.
       };
       try{
-        var gnubgid = t.match(rGnubgID);
+        var gnubgid = t.match(jsboard.re.gnubg.gnubgID);
         if (gnubgid){
           return gnubgid;
         };
@@ -188,7 +188,7 @@
             }else{
               a.attr('class', 'movelist-even-row-hover');
             }
-            img.attr('src', imageURL(data.gnubgid, h, w, jsboard.style));
+            img.attr('src', jsboard.imageURL(data.gnubgid, h, w, jsboard.style));
           },
           function out(){
             if (odd){
@@ -196,7 +196,7 @@
             }else{
               a.attr('class', 'movelist-even-row');
             }
-            img.attr('src', imageURL(alt, h, w, jsboard.style));
+            img.attr('src', jsboard.imageURL(alt, h, w, jsboard.style));
           });
         },
       error : function(){
@@ -537,8 +537,9 @@
     h = img.attr('height');
 
     cursor.bind(matFile(text), function(){
-      img.attr('src', imageURL(cursor.gnubgid, h, w, jsboard.style));
+      img.attr('src', jsboard.imageURL(cursor.gnubgid, h, w, jsboard.style));
     }, function(){
+      cursor.next(); // forcing very first to be loaded
       img.click(function(){
         cursor.next();
       });
@@ -551,7 +552,7 @@
     var root = $(this);
 
     var text = root.text();
-    var gnubgid = gnubgIDFinder(text);
+    var gnubgid = jsboard.re.gnubg.find(text);
     var mvlist = moveFinder(text);
 
     root.empty(); //clean

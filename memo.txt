@@ -941,5 +941,14 @@ gameCursor:bindで複数回生成されて不味い。
 
 idがnullであるにもかかかわず、requestに使われている。
 
+todo
+- click連打バグ。
+- unittestの追加
+ - ajaxでデータとって状態遷移があるなぁ。
+
+ちょっと気分を変えてJSSpec runnerをBPStudy tddでためす。
+
+
+
 
 

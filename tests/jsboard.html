@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ko">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+<title>jsboard.jy JSSpec results</title>
+<link rel="stylesheet" type="text/css" href="../JSSpec/JSSpec.css" />
+<script type="text/javascript" src="../JSSpec/diff_match_patch.js"></script>
+<script type="text/javascript" src="../JSSpec/JSSpec.js"></script>
+
+<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+<script>
+google.load("jquery", "1.4.0");
+jsboard = { 
+  'config': {
+    style: "nature",
+    delay: 1,
+    css: "http://assets.backgammonbase.com/default.css",
+    move_api_url : "http://localhost:8000/",
+    debug: true,
+  },
+};
+</script>
+<script type="text/javascript" src="../src/jsboard.js"></script>
+<script type="text/javascript">// <![CDATA[
+
+describe('jsboard', {
+	'before': function() {
+		target = {};
+	},
+	'jsboardがglobalで定義されている。': function() {
+    value_of(jsboard).should_include('config');
+    value_of(jsboard.config).should_include('style');
+    value_of(jsboard.config).should_include('delay');
+    value_of(jsboard.config).should_include('css');
+    value_of(jsboard.config).should_include('move_api_url');
+	},
+	'imageURLはgnubgidとwidthとheightとcssを与えられた時に対応するURLを生成する。': function() {
+    value_of(jsboard.imageURL('gnubgid', 300, 400, 'hoge')).should_be('http://image.backgammonbase.com/image?gnubgid=gnubgid&height=300&width=400&css=hoge&format=png');
+	},
+	'正規表現 gnubgID関係': function() {
+    value_of('Position ID: 4PPgAQPgc+QBIg').should_match(jsboard.re.gnubg.postionID);
+    value_of('Match ID: cAl7AAAAAAAA').should_match(jsboard.re.gnubg.matchID);
+    value_of('4PPgAQPgc+QBIg:cAl7AAAAAAAA').should_match(jsboard.re.gnubg.gnubgID);
+    value_of(jsboard.re.gnubg.find('4PPgAQPgc+QBIg:cAl7AAAAAAAA'))
+        .should_be('4PPgAQPgc+QBIg:cAl7AAAAAAAA');
+    value_of(jsboard.re.gnubg.find("Position ID: 4PPgAQPgc+QBIg\nMatch ID: cAl7AAAAAAAA"))
+        .should_be('4PPgAQPgc+QBIg:cAl7AAAAAAAA');
+	},
+	'正規表現 mat関係': function() {
+  },
+})
+
+
+
+
+
+// ]]></script>
+</head>
+<body><div style="display:none;"><p>A</p><p>B</p></div></body>
+</html>
