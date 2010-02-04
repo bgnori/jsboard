@@ -132,7 +132,7 @@
     var MoveListingPattern = MoveHeaderPattern + jsboard.re.Line + '?' + '(?:' + MoveDataPattern + jsboard.re.Line +'?'+ ')*';
     var MoveHeaderOrDataPattern = MoveHeaderPattern + '|' + MoveDataPattern ;
 
-    jsboard.re['movelist'] = {
+    jsboard.re.movelist = {
       //var movePlaceRegExp = new RegExp(movePlacePattern, 'g');
       //var equityRegexp = new RegExp(equityPattern, 'g');
       //var evalTypeRegExp = new RegExp(evalTypePattern, 'g');
@@ -193,7 +193,7 @@
     var matMovePattern = '(?:[1-6][1-6]:(?: ' + movePattern + ')* *)';
     var matCubePattern = '(?: (Takes *)|(Doubles => \\d+ *)|(Drops *))'
     var matResignPattern = '(?:( [?]{3} *))';
-    var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + ')';
+    var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + '|(?: )+)';
     var matLinePattern = '(?:[1-9 ][0-9 ][0-9]\\) ' + matActionPattern + matActionPattern + ')';
     //  1) 41: 24/23 13/9              43: 13/9 24/21              
     //  8) 53: 24/21 13/8               Doubles => 2               
