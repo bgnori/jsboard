@@ -8,18 +8,17 @@
 <script type="text/javascript" src="../JSSpec/JSSpec.js"></script>
 
 <script type="text/javascript" src="http://www.google.com/jsapi"></script>
-<script>
+<script type="text/javascript">// <![CDATA[
 google.load("jquery", "1.4.0");
 jsboard = { 
-  'config': {
+  config: {
     style: "nature",
     delay: 1,
     css: "http://assets.backgammonbase.com/default.css",
     move_api_url : "http://localhost:8000/",
-    debug: true,
-  },
+  }
 };
-</script>
+// ]]></script>
 <script type="text/javascript" src="../src/jsboard.js"></script>
 <script type="text/javascript">// <![CDATA[
 
@@ -33,11 +32,14 @@ describe('jsboard', {
     value_of(jsboard.config).should_include('delay');
     value_of(jsboard.config).should_include('css');
     value_of(jsboard.config).should_include('move_api_url');
+    value_of(jsboard).should_include('imageURL');
 	},
 	'imageURLはgnubgidとwidthとheightとcssを与えられた時に対応するURLを生成する。': function() {
+    value_of(Boolean(jsboard.imageURL)).should_be(true);
     value_of(jsboard.imageURL('gnubgid', 300, 400, 'hoge')).should_be('http://image.backgammonbase.com/image?gnubgid=gnubgid&height=300&width=400&css=hoge&format=png');
 	},
 	'正規表現 gnubgID関係': function() {
+    value_of(Boolean(jsboard.re)).should_be(true);
     value_of('Position ID: 4PPgAQPgc+QBIg').should_match(jsboard.re.gnubg.postionID);
     value_of('Match ID: cAl7AAAAAAAA').should_match(jsboard.re.gnubg.matchID);
     value_of('4PPgAQPgc+QBIg:cAl7AAAAAAAA').should_match(jsboard.re.gnubg.gnubgID);

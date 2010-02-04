@@ -4,25 +4,25 @@
 */
 
 
-(function($){
+(function ($, jsboard){
   function debug(){
     if (window['console']){
       console.log.apply(null, arguments);
     };
   };
 
-  var def = {
+  jsboard = jsboard || {};
+  var default_conf = {
       style: "nature",
       delay: 50,
       css: "http://assets.backgammonbase.com/default.css",
       move_api_url : "http://move.api.backgammonbase.com/",
-      debug: true,
   };
-  jsboard.config = jsboard.config || def;
-  $.extend(def, jsboard);
-  jsboard = def;
+  $.extend(default_conf, jsboard.config || default_conf);
+  jsboard.config = default_conf;
+  debug(jsboard);
   
-  jsboard['imageURL'] = function (gnubgid, height, width, css){
+  jsboard.imageURL = function (gnubgid, height, width, css){
     return 'http://image.backgammonbase.com/image?' + 
       'gnubgid=' +  encodeURIComponent(gnubgid) + 
       '&height='+height +
@@ -30,6 +30,7 @@
       '&css='+ css +
       '&format=png';
   };
+  debug(jsboard.imageURL('gnubgid', 300, 400, 'nature'));
 
   function image(p, gnubgid, css, usemap){
     var img;
@@ -64,13 +65,23 @@
   };
   
 
-  jsboard['re'] = {};
-  jsboard['re']['gnubg'] = {
-    postionID: new RegExp("Position ID: ([A-Za-z0-9/+]{14})"),
-    matchID: new RegExp("Match ID: ([A-Za-z0-9/+]{12})"),
-    gnubgID: new RegExp("[A-Za-z0-9/+]{14}:[A-Za-z0-9/+]{12}")
+  jsboard.re = {
+    CR: "\\n",
+    LF: "\\r",
+    CRLF: "\\r\\n",
+    BASE64: '[A-Za-z0-9/+]',
+    'float': "(?:[+-]?\\d+\\.\\d+)"
   };
-  jsboard['re']['gnubg']['find'] = function(t){
+  jsboard.re.Line = '(?:' + jsboard.re.CRLF + '|' + jsboard.re.CR + '|' + jsboard.re.LF + ')';
+
+  //floatRegExp = new RegExp(jsboard.re.float, 'g');
+
+  jsboard.re.gnubg = {
+    postionID: new RegExp("Position ID: (" + jsboard.re.BASE64 + "{14})"),
+    matchID: new RegExp("Match ID: (" + jsboard.re.BASE64 + "{12})"),
+    gnubgID: new RegExp(jsboard.re.BASE64 + "{14}:" + jsboard.re.BASE64 +"{12}")
+  };
+  jsboard.re.gnubg.find = function(t){
     var pos;
     var match;
     var e;
@@ -97,64 +108,139 @@
     //return '4PPgAQPgc+QBIg:cAl7AAAAAAAA';
   };
   
-  var CR = "\\n";
-  var LF = "\\r";
-  var CRLF = "\\r\\n";
-  var Line = '(?:' + CRLF + '|' + CR + '|' + LF + ')';
-  var floatPattern = "(?:[+-]?\\d+\\.\\d+)";
-  var floatRegExp = new RegExp(floatPattern, 'g');
-  var movePlacePattern = "(?:\\d+\\. )";
-  var movePlaceRegExp = new RegExp(movePlacePattern, 'g');
-  var evalTypePattern = "(?:(?:Cubeful [01234]-ply)|(?:Rollout))";
-  var evalTypeRegExp = new RegExp(evalTypePattern, 'g');
-  var pointPattern = "(?:(?:bar)|(?:[12]\\d|\\d)|(?:off))";
-  var pointRegExp = new RegExp(pointPattern, 'g');
-  var movePattern = "(?:(?:" + pointPattern + "/(?:" + pointPattern + "\\*?)+(?:\\([1-4]\\))?) ?)+";
-  var moveRegexp = new RegExp(movePattern, 'g');
-  var equityPattern = "Eq.: +"+floatPattern + "(?: \\( "+ floatPattern + "\\))?";
-  var equityRegexp = new RegExp(equityPattern, 'g');
+  (function(){
+    var movePlacePattern = "(?:\\d+\\. )";
+    var evalTypePattern = "(?:(?:Cubeful [01234]-ply)|(?:Rollout))";
+    var pointPattern = "(?:(?:bar)|(?:[12]\\d|\\d)|(?:off))";
+    var movePattern = "(?:(?:" + pointPattern + "/(?:" + pointPattern + "\\*?)+(?:\\([1-4]\\))?) ?)+";
+    var equityPattern = "Eq.: +"+jsboard.re.float + "(?: \\( "+ jsboard.re.float + "\\))?";
+    var MoveHeaderPattern = "(?:(?: ){4}" + movePlacePattern + "(?: )*" + evalTypePattern + "(?: )*" + movePattern + "(?: )*" + equityPattern + ')';
+    var allEquityPattern =  '(?:'+ jsboard.re.float + ' ' + jsboard.re.float + ' ' + jsboard.re.float + ' - ' 
+                                 + jsboard.re.float + ' ' + jsboard.re.float + ' ' + jsboard.re.float + ')';
+    var CFCLPattern =  '(?: CL  [ +-]' + jsboard.re.float + ' CF  [ +-]' + jsboard.re.float + ')';
+    var MoveDataPattern = '(?:(?: ){4}(?:' 
+      +  '(?:(?: ){3}'
+      +    allEquityPattern + CFCLPattern + '?'
+      +  ')|'
+      +  '(?:(?: ){2}'
+      +    '\\[' + allEquityPattern + CFCLPattern + '\\]'
+      +  ')|'
+      +  '(?:(?: ){4}('
+      +      '(?:(?: ){0,3}(?:\\S))+'
+      +  '))'
+      +'))';
+    var MoveListingPattern = MoveHeaderPattern + jsboard.re.Line + '?' + '(?:' + MoveDataPattern + jsboard.re.Line +'?'+ ')*';
+    var MoveHeaderOrDataPattern = MoveHeaderPattern + '|' + MoveDataPattern ;
+
+    jsboard.re['movelist'] = {
+      //var movePlaceRegExp = new RegExp(movePlacePattern, 'g');
+      //var equityRegexp = new RegExp(equityPattern, 'g');
+      //var evalTypeRegExp = new RegExp(evalTypePattern, 'g');
+      //var pointRegExp = new RegExp(pointPattern, 'g');
+      //var MoveHeaderRegExp = new RegExp(MoveHeaderPattern,'g');
+      //var MoveDataRegExp = new RegExp(MoveDataPattern, 'g');
+      move: new RegExp(movePattern, 'g'),
+      list: new RegExp(MoveListingPattern, 'g'),
+      data: new RegExp(MoveHeaderOrDataPattern, 'g'),
+    };
+    // reg exps for mat file parsing
+/*
+; [Site "eXtreme Gammon"]
+; [Match ID "238991235"]
+; [Player 1 "Jake Jacobs"]
+; [Player 2 "Hosaka Noriyuki"]
+; [Player 1 Elo "1600.00/0"]
+; [Player 2 Elo "1600.00/0"]
+; [EventDate "2009.10.03"]
+; [EventTime "21.53"]
+; [Variation "Backgammon"]
+; [Unrated "Off"]
+; [Crawford "On"]
+; [CubeLimit "1024"]
+*/
+    var matHeaderNamePattern = 
+          '(?:' 
+        +   'Site|'
+        +   'Match ID|'
+        +   'Player 1|'
+        +   'Player 2|'
+        +   'Player 1 Elo|'
+        +   'Player 2 Elo|'
+        +   'EventDate|'
+        +   'EventTime|'
+        +   'Variation|'
+        +   'Unrated|'
+        +   'Crawford|'
+        +   'CubeLimit'
+        + ')'
+    var matHeaderValuePattern = '"[^"]+"';
+    var matHeaderPattern = 
+          '(?:; \\['
+        + matHeaderNamePattern
+        + ' ' // There is a white space!!
+        + matHeaderValuePattern
+        + '\\])';
+
+    var matMatchHeaderPattern = '(?:\\d+ point match)' //ugh! money game
+    var matGameNthPattern = '(?: Game \\d+)';
+    var matPlayerNameWithScorePattern ='(?:[ a-zA-Z]+: \\d+)';
+    var matGameHeaderPattern = '(?:' 
+                              + matGameNthPattern
+                              + jsboard.re.Line + '? '
+                              + matPlayerNameWithScorePattern
+                              + matPlayerNameWithScorePattern
+                              + jsboard.re.Line + '?' + ')';
+    var matMovePattern = '(?:[1-6][1-6]:(?: ' + movePattern + ')* *)';
+    var matCubePattern = '(?: (Takes *)|(Doubles => \\d+ *)|(Drops *))'
+    var matResignPattern = '(?:( [?]{3} *))';
+    var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + ')';
+    var matLinePattern = '(?:[1-9 ][0-9 ][0-9]\\) ' + matActionPattern + matActionPattern + ')';
+    //  1) 41: 24/23 13/9              43: 13/9 24/21              
+    //  8) 53: 24/21 13/8               Doubles => 2               
+    //  9)  Takes                      62: 13/7 13/11              
+    var matGamePattern = '(?:' + matGameHeaderPattern + jsboard.re.Line + '?'
+                       +       '(?:' + matLinePattern + jsboard.re.Line + '?)+'
+                       + ')';
+
+    jsboard.re.mat = {
+      file: {
+        headername:  new RegExp(matHeaderNamePattern),
+        headervalue:new RegExp(matHeaderValuePattern),
+        header: new RegExp(matHeaderPattern, 'g')
+      },
+      match: {
+        header: new RegExp(matMatchHeaderPattern),
+      },
+      game: {
+        nth: new RegExp(matGameNthPattern, 'g'),
+        player: new RegExp(matPlayerNameWithScorePattern, 'g'),
+        header: new RegExp(matGameHeaderPattern, 'g'),
+        game: new RegExp(matGamePattern, 'g')
+      },
+      action: {
+        move: new RegExp(matMovePattern),
+        cube: new RegExp(matCubePattern),
+        action: new RegExp(matActionPattern, 'g'),
+        line: new RegExp(matLinePattern, 'g')
+      }
+    };
+
+  })();
   
-  var MoveHeaderPattern = "(?:(?: ){4}" + movePlacePattern + "(?: )*" + evalTypePattern + "(?: )*" + movePattern + "(?: )*" + equityPattern + ')';
-  var MoveHeaderRegExp = new RegExp(MoveHeaderPattern,'g');
-  var allEquityPattern =  '(?:'+ floatPattern + ' ' + floatPattern + ' ' + floatPattern + ' - ' 
-                               + floatPattern + ' ' + floatPattern + ' ' + floatPattern + ')';
-  debug(allEquityPattern);
-  var CFCLPattern =  '(?: CL  [ +-]' + floatPattern + ' CF  [ +-]' + floatPattern + ')';
-  debug(CFCLPattern);
-
-  var MoveDataPattern = '(?:(?: ){4}(?:' 
-   +  '(?:(?: ){3}'
-   +    allEquityPattern + CFCLPattern + '?'
-   +  ')|'
-   +  '(?:(?: ){2}'
-   +    '\\[' + allEquityPattern + CFCLPattern + '\\]'
-   +  ')|'
-   +  '(?:(?: ){4}('
-   +      '(?:(?: ){0,3}(?:\\S))+'
-   +  '))'
-   +'))';
-  debug(MoveDataPattern);
-  var MoveDataRegExp = new RegExp(MoveDataPattern, 'g');
-  var MoveListingPattern = MoveHeaderPattern + Line + '?' + '(?:' + MoveDataPattern + Line +'?'+ ')*';
-  debug(MoveListingPattern);
-  var MoveListingRegExp = new RegExp(MoveListingPattern, 'g');
-
-  var MoveHeaderOrDataPattern = MoveHeaderPattern + '|' + MoveDataPattern ;
-  var MoveHeaderOrDataRegExp = new RegExp(MoveHeaderOrDataPattern, 'g');
 
   function moveFinder(t){
-    var m = t.match(MoveListingRegExp);
+    var m = t.match(jsboard.re.movelist.list);
     debug(m);
     return m;
   };
 
   function reformatMove(mv){
-    return mv.match(MoveHeaderOrDataRegExp).join('\n');
+    return mv.match(jsboard.re.movelist.data).join('\n');
   };
 
   function moveList(r, mv, odd){
-    debug(mv);
-    var m = mv.match(moveRegexp);
+    debug('moveList', mv);
+    var m = mv.match(jsboard.re.movelist.move);
     debug(m);
     if (odd){
       r.append($('<div class="movelist-odd-row" alt="' + m
@@ -188,7 +274,7 @@
             }else{
               a.attr('class', 'movelist-even-row-hover');
             }
-            img.attr('src', jsboard.imageURL(data.gnubgid, h, w, jsboard.style));
+            img.attr('src', jsboard.imageURL(data.gnubgid, h, w, jsboard.config.style));
           },
           function out(){
             if (odd){
@@ -196,7 +282,7 @@
             }else{
               a.attr('class', 'movelist-even-row');
             }
-            img.attr('src', jsboard.imageURL(alt, h, w, jsboard.style));
+            img.attr('src', jsboard.imageURL(alt, h, w, jsboard.config.style));
           });
         },
       error : function(){
@@ -205,94 +291,22 @@
     });
   };
   
-  var matHeaderNamePattern = 
-        '(?:' 
-      +   'Site|'
-      +   'Match ID|'
-      +   'Player 1|'
-      +   'Player 2|'
-      +   'Player 1 Elo|'
-      +   'Player 2 Elo|'
-      +   'EventDate|'
-      +   'EventTime|'
-      +   'Variation|'
-      +   'Unrated|'
-      +   'Crawford|'
-      +   'CubeLimit'
-      + ')'
-  var matHeaderNameRegExp = new RegExp(matHeaderNamePattern);
-  var matHeaderValuePattern = '"[^"]+"';
-  var matHeaderValueRegExp = new RegExp(matHeaderValuePattern);
-  var matHeaderPattern = 
-        '(?:; \\['
-      + matHeaderNamePattern
-      + ' ' // There is a white space!!
-      + matHeaderValuePattern
-      + '\\])';
-/*
-; [Site "eXtreme Gammon"]
-; [Match ID "238991235"]
-; [Player 1 "Jake Jacobs"]
-; [Player 2 "Hosaka Noriyuki"]
-; [Player 1 Elo "1600.00/0"]
-; [Player 2 Elo "1600.00/0"]
-; [EventDate "2009.10.03"]
-; [EventTime "21.53"]
-; [Variation "Backgammon"]
-; [Unrated "Off"]
-; [Crawford "On"]
-; [CubeLimit "1024"]
-*/
-
-  var matHeaderRegExp = new RegExp(matHeaderPattern, 'g');
-  
-  var matMatchHeaderPattern = '(?:\\d+ point match)' //ugh! money game
-  var matMatchHeaderRegExp = new RegExp(matMatchHeaderPattern);
-  var matGameNthPattern = '(?: Game \\d+)';
-  var matGameNthRegExp = new RegExp(matGameNthPattern, 'g');
-  var matPlayerNameWithScorePattern ='(?:[ a-zA-Z]+: \\d+)';
-  var matPlayerNameWithScoreRegExp = new RegExp(matPlayerNameWithScorePattern, 'g');
-  var matGameHeaderPattern = '(?:' 
-                            + matGameNthPattern
-                            + Line + '? '
-                            + matPlayerNameWithScorePattern
-                            + matPlayerNameWithScorePattern
-                            + Line + '?' + ')';
-  var matGameHeaderRegExp = new RegExp(matGameHeaderPattern, 'g');
-
-  var matMovePattern = '(?:[1-6][1-6]:(?: ' + movePattern + ')* *)';
-  var matMoveRegExp = new RegExp(matMovePattern);
-  var matCubePattern = '(?: (Takes *)|(Doubles => \\d+ *)|(Drops *))'
-  var matCubeRegExp = new RegExp(matCubePattern);
-  var matResignPattern = '(?:( [?]{3} *))';
-  var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + ')';
-  var matActionRegExp = new RegExp(matActionPattern, 'g');
-  var matLinePattern = '(?:[1-9 ][0-9 ][0-9]\\) ' + matActionPattern + matActionPattern + ')';
-  //  1) 41: 24/23 13/9              43: 13/9 24/21              
-  //  8) 53: 24/21 13/8               Doubles => 2               
-  //  9)  Takes                      62: 13/7 13/11              
-  var matLineRegExp = new RegExp(matLinePattern, 'g');
-  var matGamePattern = '(?:' + matGameHeaderPattern + Line + '?'
-                     +       '(?:' + matLinePattern + Line + '?)+'
-                     + ')';
-
-  var matGameRegExp = new RegExp(matGamePattern, 'g');
 
   function matAction(t){
     if (t != ''){
       var move = '';
       var cube = '';
       var resign = '';
-      move = (t.match(matMoveRegExp)||{0:''})[0];
+      move = (t.match(mat.action.move)||{0:''})[0];
       if (move != ''){
         debug(move);
         return {
           'cube': 0,
           dice: move.slice(0, 2), 
-          'move': (move.match(moveRegexp)|| {0:''})[0],
+          'move': (move.match(jsboard.re.movelist.move)|| {0:''})[0],
         };
       };
-      cube = (t.match(matCubeRegExp)||{0:''})[0];
+      cube = (t.match(mat.action.cube)||{0:''})[0];
       if (cube != ''){
         return {
           'cube': cube,
@@ -305,12 +319,12 @@
 
   function matMoves(t){
     var r = {};
-    var lines = t.match(matLineRegExp);
+    var lines = t.match(mat.action.line);
     for (n in lines){
       var current_move = {};
       var k = lines[n];
       var nth = parseInt(k.slice(0,3));
-      var pair = k.match(matActionRegExp)
+      var pair = k.match(mat.action.action)
       current_move[0] = matAction(pair[0]);
       current_move[1] = matAction(pair[1]);
       current_move.nth = nth;
@@ -324,8 +338,8 @@
     debug('matHeader', xs);
     var i;
     for (i in xs){
-      var n = xs[i].match(matHeaderNameRegExp)[0];
-      var v = xs[i].match(matHeaderValueRegExp)[0];
+      var n = xs[i].match(mat.file.headername)[0];
+      var v = xs[i].match(mat.file.headervalue)[0];
       v = v.slice(1, -1);
       debug(n, v);
       r[n] = v;
@@ -337,17 +351,17 @@
     var matchnavi = {};
     var xs;
     var i;
-    matchnavi.headers = matHeader(t.match(matHeaderRegExp));
-    matchnavi.match_length = parseInt(t.match(matMatchHeaderRegExp)[0]);
+    matchnavi.headers = matHeader(t.match(mat.file.header));
+    matchnavi.match_length = parseInt(t.match(mat.match.header)[0]);
     matchnavi.games = {};
-    xs = t.match(matGameRegExp);
+    xs = t.match(mat.game.game);
     for (i in xs){
-      var h = (xs[i].match(matGameHeaderRegExp))[0];
-      var p = h.match(matPlayerNameWithScoreRegExp);
+      var h = (xs[i].match(mat.game.header))[0];
+      var p = h.match(mat.game.player);
       var score = {};
       score[0]=  parseInt(p[0].match('\\d+$'));
       score[1]=  parseInt(p[1].match('\\d+$'));
-      n = h.match(matGameNthRegExp)[0];
+      n = h.match(mat.game.nth)[0];
       matchnavi.games[i] = {
         name: n,
         match_length: matchnavi.match_length,
@@ -524,6 +538,7 @@
   };
 
   function make_matviewer(n){
+    debug("make_matviewer processing", n);
     var img;
     var h;
     var w;
@@ -531,13 +546,13 @@
     var text = root.text();
     var cursor = matMatchCursor();
     
-    image(root, '', jsboard.style, '#matviewer');
+    image(root, '', jsboard.config.style, '#matviewer');
     img = root.find("img");
     w = img.attr('width');
     h = img.attr('height');
 
     cursor.bind(matFile(text), function(){
-      img.attr('src', jsboard.imageURL(cursor.gnubgid, h, w, jsboard.style));
+      img.attr('src', jsboard.imageURL(cursor.gnubgid, h, w, jsboard.config.style));
     }, function(){
       cursor.next(); // forcing very first to be loaded
       img.click(function(){
@@ -547,17 +562,19 @@
   };
 
   function viewer(n){
+    debug("viewer processing", n);
     var id_str =  'jsboard'+n;
 
     var root = $(this);
 
     var text = root.text();
     var gnubgid = jsboard.re.gnubg.find(text);
+    debug(gnubgid);
     var mvlist = moveFinder(text);
 
     root.empty(); //clean
 
-    image(root, gnubgid, jsboard.style, '#'+id_str);
+    image(root, gnubgid, jsboard.config.style, '#'+id_str);
 
     root.append($('<map name="' + id_str + '" id="'+ id_str + '" />'));
 
@@ -580,6 +597,7 @@
 
 
   function loadCSS(src, delay, onload, error){
+    debug('loadCSS', src);
     $.ajax({
       type: "GET",
       url: src,
@@ -598,17 +616,18 @@
   };
 
   // entry point
+  debug(jsboard.config.css);
   $(document).ready(function(){
-    loadCSS(jsboard.css, jsboard.delay, 
+    loadCSS(jsboard.config.css, jsboard.config.delay, 
     function(){
       debug('processing.');
       $('.jsboard').each(viewer);
       $('.jsmatviewer').each(make_matviewer);
     }, 
     function (XMLHttpRequest, testStatus, errorThrown){
-      debug('css load failed: '+ jsboard.css);
+      debug('css load failed: '+ jsboard.config.css);
     }); 
   });
-})(jQuery);
+})(jQuery, jsboard);
 
 
