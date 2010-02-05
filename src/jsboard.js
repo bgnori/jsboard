@@ -22,7 +22,9 @@
   jsboard.config = default_conf;
   debug(jsboard);
   
-  jsboard.imageURL = function (gnubgid, height, width, css){
+
+  jsboard.fn = {};
+  jsboard.fn.imageURL = function (gnubgid, height, width, css){
     return 'http://image.backgammonbase.com/image?' + 
       'gnubgid=' +  encodeURIComponent(gnubgid) + 
       '&height='+height +
@@ -30,10 +32,11 @@
       '&css='+ css +
       '&format=png';
   };
-  debug(jsboard.imageURL('gnubgid', 300, 400, 'nature'));
+  debug(jsboard.fn.imageURL('gnubgid', 300, 400, 'nature'));
 
-  function image(p, gnubgid, css, usemap){
+  jsboard.fn.image = function(p, gnubgid, css, usemap){
     var img;
+    debug('jsboard.fn.image', p, gnubgid, css);
     img = p.find('[class="jsboard-image"]');
     if (img.length == 0){
       // There is nothing.
@@ -53,10 +56,10 @@
     //debug(h);
     img.attr("usemap", usemap);
     img.attr("alt", gnubgid);
-    img.attr("src", jsboard.imageURL(gnubgid, h, w, css));
+    img.attr("src", jsboard.fn.imageURL(gnubgid, h, w, css));
   };
 
-  function area(map, id, shape, coords, alt){
+  jsboard.fn.area = function (map, id, shape, coords, alt){
     map.append($('<a id="'+ id 
                + '" shape="' + shape 
                + '" coords="' + coords 
@@ -65,16 +68,16 @@
   };
   
 
-  jsboard.re = {
+  jsboard.pattern = {
     CR: "\\n",
     LF: "\\r",
     CRLF: "\\r\\n",
     BASE64: '[A-Za-z0-9/+]',
     'float': "(?:[+-]?\\d+\\.\\d+)"
   };
-  jsboard.re.Line = '(?:' + jsboard.re.CRLF + '|' + jsboard.re.CR + '|' + jsboard.re.LF + ')';
+  jsboard.pattern.Line = '(?:' + jsboard.pattern.CRLF + '|' + jsboard.pattern.CR + '|' + jsboard.pattern.LF + ')';
 
-  //floatRegExp = new RegExp(jsboard.re.float, 'g');
+  //floatRegExp = new RegExp(jsboard.pattern.float, 'g');
 
   /*
    *
@@ -83,10 +86,11 @@
    */
   jsboard.gnubg = {};
   jsboard.gnubg.re = {
-    postionID: new RegExp("Position ID: (" + jsboard.re.BASE64 + "{14})"),
-    matchID: new RegExp("Match ID: (" + jsboard.re.BASE64 + "{12})"),
-    gnubgID: new RegExp(jsboard.re.BASE64 + "{14}:" + jsboard.re.BASE64 +"{12}")
+    postionID: new RegExp("Position ID: (" + jsboard.pattern.BASE64 + "{14})"),
+    matchID: new RegExp("Match ID: (" + jsboard.pattern.BASE64 + "{12})"),
+    gnubgID: new RegExp(jsboard.pattern.BASE64 + "{14}:" + jsboard.pattern.BASE64 +"{12}")
   };
+
   jsboard.gnubg.find = function(t){
     var pos;
     var match;
@@ -120,15 +124,16 @@
    *
    */
   (function(){
+    jsboard.movelist = {};
     var movePlacePattern = "(?:\\d+\\. )";
     var evalTypePattern = "(?:(?:Cubeful [01234]-ply)|(?:Rollout))";
     var pointPattern = "(?:(?:bar)|(?:[12]\\d|\\d)|(?:off))";
     var movePattern = "(?:(?:" + pointPattern + "/(?:" + pointPattern + "\\*?)+(?:\\([1-4]\\))?) ?)+";
-    var equityPattern = "Eq.: +"+jsboard.re.float + "(?: \\( "+ jsboard.re.float + "\\))?";
+    var equityPattern = "Eq.: +"+jsboard.pattern.float + "(?: \\( "+ jsboard.pattern.float + "\\))?";
     var MoveHeaderPattern = "(?:(?: ){4}" + movePlacePattern + "(?: )*" + evalTypePattern + "(?: )*" + movePattern + "(?: )*" + equityPattern + ')';
-    var allEquityPattern =  '(?:'+ jsboard.re.float + ' ' + jsboard.re.float + ' ' + jsboard.re.float + ' - ' 
-                                 + jsboard.re.float + ' ' + jsboard.re.float + ' ' + jsboard.re.float + ')';
-    var CFCLPattern =  '(?: CL  [ +-]' + jsboard.re.float + ' CF  [ +-]' + jsboard.re.float + ')';
+    var allEquityPattern =  '(?:'+ jsboard.pattern.float + ' ' + jsboard.pattern.float + ' ' + jsboard.pattern.float + ' - ' 
+                                 + jsboard.pattern.float + ' ' + jsboard.pattern.float + ' ' + jsboard.pattern.float + ')';
+    var CFCLPattern =  '(?: CL  [ +-]' + jsboard.pattern.float + ' CF  [ +-]' + jsboard.pattern.float + ')';
     var MoveDataPattern = '(?:(?: ){4}(?:' 
       +  '(?:(?: ){3}'
       +    allEquityPattern + CFCLPattern + '?'
@@ -140,10 +145,14 @@
       +      '(?:(?: ){0,3}(?:\\S))+'
       +  '))'
       +'))';
-    var MoveListingPattern = MoveHeaderPattern + jsboard.re.Line + '?' + '(?:' + MoveDataPattern + jsboard.re.Line +'?'+ ')*';
+    var MoveListingPattern = MoveHeaderPattern + jsboard.pattern.Line + '?' + '(?:' + MoveDataPattern + jsboard.pattern.Line +'?'+ ')*';
     var MoveHeaderOrDataPattern = MoveHeaderPattern + '|' + MoveDataPattern ;
 
-    jsboard.movelist = {};
+    jsboard.movelist.patterns = {
+      //putting patterns in name space gives so little.
+      'move': movePattern, //Ugh!
+    };
+
     jsboard.movelist.re = {
       //var movePlaceRegExp = new RegExp(movePlacePattern, 'g');
       //var equityRegexp = new RegExp(equityPattern, 'g');
@@ -155,7 +164,7 @@
       list: new RegExp(MoveListingPattern, 'g'),
       data: new RegExp(MoveHeaderOrDataPattern, 'g'),
     };
-
+  })();
 
 
   /*
@@ -163,7 +172,11 @@
    *    jsboard.mat
    *
    */
-    // reg exps for mat file parsing
+  (function(){
+    jsboard.mat = {};
+    jsboard.mat.patterns = {
+      //putting patterns in name space gives so little.
+    };
 /*
 ; [Site "eXtreme Gammon"]
 ; [Match ID "238991235"]
@@ -206,11 +219,11 @@
     var matPlayerNameWithScorePattern ='(?:[ a-zA-Z]+: \\d+)';
     var matGameHeaderPattern = '(?:' 
                               + matGameNthPattern
-                              + jsboard.re.Line + '? '
+                              + jsboard.pattern.Line + '? '
                               + matPlayerNameWithScorePattern
                               + matPlayerNameWithScorePattern
-                              + jsboard.re.Line + '?' + ')';
-    var matMovePattern = '(?:[1-6][1-6]:(?: ' + movePattern + ')* *)';
+                              + jsboard.pattern.Line + '?' + ')';
+    var matMovePattern = '(?:[1-6][1-6]:(?: ' + jsboard.movelist.patterns.move+ ')* *)';
     var matCubePattern = '(?: (Takes *)|(Doubles => \\d+ *)|(Drops *))'
     var matResignPattern = '(?:( [?]{3} *))';
     var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + '|(?: )+)';
@@ -218,11 +231,10 @@
     //  1) 41: 24/23 13/9              43: 13/9 24/21              
     //  8) 53: 24/21 13/8               Doubles => 2               
     //  9)  Takes                      62: 13/7 13/11              
-    var matGamePattern = '(?:' + matGameHeaderPattern + jsboard.re.Line + '?'
-                       +       '(?:' + matLinePattern + jsboard.re.Line + '?)+'
+    var matGamePattern = '(?:' + matGameHeaderPattern + jsboard.pattern.Line + '?'
+                       +       '(?:' + matLinePattern + jsboard.pattern.Line + '?)+'
                        + ')';
 
-    jsboard.mat = {};
     jsboard.mat.re = {
       file: {
         headername:  new RegExp(matHeaderNamePattern),
@@ -250,11 +262,11 @@
   
 
 
-  function reformatMove(mv){
-    return mv.match(jsboard.movelist.re.data).join('\n');
-  };
 
   function moveList(r, mv, odd){
+    function reformatMove(mv){
+      return mv.match(jsboard.movelist.re.data).join('\n');
+    };
     debug('moveList', mv);
     var m = mv.match(jsboard.movelist.re.move);
     debug(m);
@@ -290,7 +302,7 @@
             }else{
               a.attr('class', 'movelist-even-row-hover');
             }
-            img.attr('src', jsboard.imageURL(data.gnubgid, h, w, jsboard.config.style));
+            img.attr('src', jsboard.fn.imageURL(data.gnubgid, h, w, jsboard.config.style));
           },
           function out(){
             if (odd){
@@ -298,7 +310,7 @@
             }else{
               a.attr('class', 'movelist-even-row');
             }
-            img.attr('src', jsboard.imageURL(alt, h, w, jsboard.config.style));
+            img.attr('src', jsboard.fn.imageURL(alt, h, w, jsboard.config.style));
           });
         },
       error : function(){
@@ -553,8 +565,8 @@
     };
   };
 
-  function make_matviewer(n){
-    debug("make_matviewer processing", n);
+  jsboard.fn.matviewer = function (n){
+    debug("jsboard.fn.matviewer processing", n);
     var img;
     var h;
     var w;
@@ -562,13 +574,13 @@
     var text = root.text();
     var cursor = matMatchCursor();
     
-    image(root, '', jsboard.config.style, '#matviewer');
+    jsboard.fn.image(root, '', jsboard.config.style, '#matviewer');
     img = root.find("img");
     w = img.attr('width');
     h = img.attr('height');
 
     cursor.bind(matFile(text), function(){
-      img.attr('src', jsboard.imageURL(cursor.gnubgid, h, w, jsboard.config.style));
+      img.attr('src', jsboard.fn.imageURL(cursor.gnubgid, h, w, jsboard.config.style));
     }, function(){
       cursor.next(); // forcing very first to be loaded
       img.click(function(){
@@ -577,17 +589,18 @@
     });
   };
 
-  function viewer(n){
-    debug("viewer processing", n);
+
+  jsboard.fn.board = function(n){
+    debug("jsboard.fn.board processing", n);
     var id_str =  'jsboard'+n;
     var root = $(this);
     var text = root.text();
-    var gnubgid = jsboard.gnubg.re.find(text);
+    var gnubgid = jsboard.gnubg.find(text);
     var mvlist = text.match(jsboard.movelist.re.list);
 
     root.empty(); //clean
 
-    image(root, gnubgid, jsboard.config.style, '#'+id_str);
+    jsboard.fn.image(root, gnubgid, jsboard.config.style, '#'+id_str);
 
     root.append($('<map name="' + id_str + '" id="'+ id_str + '" />'));
 
@@ -598,18 +611,18 @@
     };
   };
 
-  function player(n){
+  jsboard.fn.player = function(n){
     var map = $('#' + id_str);
-    area(map, "13pt", "rect", "25,5,43,93", "13pt");
-    area(map, "7pt", "rect", "115,139,133,227", "7pt");
-    area(map, "yourbar", "rect", "133,116,158,228", "yourbar");
+    jsboard.fn.area(map, "13pt", "rect", "25,5,43,93", "13pt");
+    jsboard.fn.area(map, "7pt", "rect", "115,139,133,227", "7pt");
+    jsboard.fn.area(map, "yourbar", "rect", "133,116,158,228", "yourbar");
   };
 
   function editor(n){
   };
 
 
-  function loadCSS(src, delay, onload, error){
+  jsboard.fn.loadCSS = function (src, delay, onload, error){
     debug('loadCSS', src);
     $.ajax({
       type: "GET",
@@ -631,11 +644,11 @@
   // entry point
   debug(jsboard.config.css);
   $(document).ready(function(){
-    loadCSS(jsboard.config.css, jsboard.config.delay, 
+    jsboard.fn.loadCSS(jsboard.config.css, jsboard.config.delay, 
     function(){
       debug('processing.');
-      $('.jsboard').each(viewer);
-      $('.jsmatviewer').each(make_matviewer);
+      $('.jsboard').each(jsboard.fn.board);
+      $('.jsmatviewer').each(jsboard.fn.matviewer);
     }, 
     function (XMLHttpRequest, testStatus, errorThrown){
       debug('css load failed: '+ jsboard.config.css);
