@@ -76,19 +76,25 @@
 
   //floatRegExp = new RegExp(jsboard.re.float, 'g');
 
-  jsboard.re.gnubg = {
+  /*
+   *
+   *    jsboard.gnubg
+   *
+   */
+  jsboard.gnubg = {};
+  jsboard.gnubg.re = {
     postionID: new RegExp("Position ID: (" + jsboard.re.BASE64 + "{14})"),
     matchID: new RegExp("Match ID: (" + jsboard.re.BASE64 + "{12})"),
     gnubgID: new RegExp(jsboard.re.BASE64 + "{14}:" + jsboard.re.BASE64 +"{12}")
   };
-  jsboard.re.gnubg.find = function(t){
+  jsboard.gnubg.find = function(t){
     var pos;
     var match;
     var e;
     if (t) {
       try{
-        pos = t.match(jsboard.re.gnubg.postionID)[1];
-        match = t.match(jsboard.re.gnubg.matchID)[1];
+        pos = t.match(jsboard.gnubg.re.postionID)[1];
+        match = t.match(jsboard.gnubg.re.matchID)[1];
         if ( pos && match ){
           return pos + ':' + match;
         };
@@ -96,7 +102,7 @@
         //surpress error try other.
       };
       try{
-        var gnubgid = t.match(jsboard.re.gnubg.gnubgID);
+        var gnubgid = t.match(jsboard.gnubg.re.gnubgID);
         if (gnubgid){
           return gnubgid;
         };
@@ -108,6 +114,11 @@
     //return '4PPgAQPgc+QBIg:cAl7AAAAAAAA';
   };
   
+  /*
+   *
+   *    jsboard.movelist
+   *
+   */
   (function(){
     var movePlacePattern = "(?:\\d+\\. )";
     var evalTypePattern = "(?:(?:Cubeful [01234]-ply)|(?:Rollout))";
@@ -132,7 +143,8 @@
     var MoveListingPattern = MoveHeaderPattern + jsboard.re.Line + '?' + '(?:' + MoveDataPattern + jsboard.re.Line +'?'+ ')*';
     var MoveHeaderOrDataPattern = MoveHeaderPattern + '|' + MoveDataPattern ;
 
-    jsboard.re.movelist = {
+    jsboard.movelist = {};
+    jsboard.movelist.re = {
       //var movePlaceRegExp = new RegExp(movePlacePattern, 'g');
       //var equityRegexp = new RegExp(equityPattern, 'g');
       //var evalTypeRegExp = new RegExp(evalTypePattern, 'g');
@@ -143,6 +155,14 @@
       list: new RegExp(MoveListingPattern, 'g'),
       data: new RegExp(MoveHeaderOrDataPattern, 'g'),
     };
+
+
+
+  /*
+   *
+   *    jsboard.mat
+   *
+   */
     // reg exps for mat file parsing
 /*
 ; [Site "eXtreme Gammon"]
@@ -202,7 +222,8 @@
                        +       '(?:' + matLinePattern + jsboard.re.Line + '?)+'
                        + ')';
 
-    jsboard.re.mat = {
+    jsboard.mat = {};
+    jsboard.mat.re = {
       file: {
         headername:  new RegExp(matHeaderNamePattern),
         headervalue:new RegExp(matHeaderValuePattern),
@@ -228,19 +249,14 @@
   })();
   
 
-  function moveFinder(t){
-    var m = t.match(jsboard.re.movelist.list);
-    debug(m);
-    return m;
-  };
 
   function reformatMove(mv){
-    return mv.match(jsboard.re.movelist.data).join('\n');
+    return mv.match(jsboard.movelist.re.data).join('\n');
   };
 
   function moveList(r, mv, odd){
     debug('moveList', mv);
-    var m = mv.match(jsboard.re.movelist.move);
+    var m = mv.match(jsboard.movelist.re.move);
     debug(m);
     if (odd){
       r.append($('<div class="movelist-odd-row" alt="' + m
@@ -303,7 +319,7 @@
         return {
           'cube': 0,
           dice: move.slice(0, 2), 
-          'move': (move.match(jsboard.re.movelist.move)|| {0:''})[0],
+          'move': (move.match(jsboard.movelist.re.move)|| {0:''})[0],
         };
       };
       cube = (t.match(mat.action.cube)||{0:''})[0];
@@ -564,13 +580,10 @@
   function viewer(n){
     debug("viewer processing", n);
     var id_str =  'jsboard'+n;
-
     var root = $(this);
-
     var text = root.text();
-    var gnubgid = jsboard.re.gnubg.find(text);
-    debug(gnubgid);
-    var mvlist = moveFinder(text);
+    var gnubgid = jsboard.gnubg.re.find(text);
+    var mvlist = text.match(jsboard.movelist.re.list);
 
     root.empty(); //clean
 
