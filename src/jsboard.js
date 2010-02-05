@@ -25,6 +25,7 @@
 
   jsboard.fn = {};
   jsboard.fn.imageURL = function (gnubgid, height, width, css){
+    debug('jsboard.fn.imageURL', gnubgid, height, width, css);
     return 'http://image.backgammonbase.com/image?' + 
       'gnubgid=' +  encodeURIComponent(gnubgid) + 
       '&height='+height +
@@ -32,7 +33,6 @@
       '&css='+ css +
       '&format=png';
   };
-  debug(jsboard.fn.imageURL('gnubgid', 300, 400, 'nature'));
 
   jsboard.fn.image = function(p, gnubgid, css, usemap){
     var img;
@@ -55,6 +55,7 @@
     //debug(w);
     //debug(h);
     img.attr("usemap", usemap);
+    gnubgid = gnubgid || '4HPwATDgc/ABMA:cAkAAAAAAAAA';
     img.attr("alt", gnubgid);
     img.attr("src", jsboard.fn.imageURL(gnubgid, h, w, css));
   };
@@ -279,10 +280,11 @@
                               + matPlayerNameWithScorePattern
                               + matPlayerNameWithScorePattern
                               + jsboard.pattern.Line + '?' + ')';
-    var matMovePattern = '(?:[1-6][1-6]:(?: ' + jsboard.movelist.pattern.move+ ')* *)';
+    var matMovePattern = '(?:[1-6][1-6]:(?: ' + jsboard.movelist.pattern.move + ')* *)';
     var matCubePattern = '(?: (Takes *)|(Doubles => \\d+ *)|(Drops *))'
     var matResignPattern = '(?:( [?]{3} *))';
-    var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + '|(?: )+)';
+    var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + ')';
+    //'|(?: )+)';
     var matLinePattern = '(?:[1-9 ][0-9 ][0-9]\\) ' + matActionPattern + matActionPattern + ')';
     //  1) 41: 24/23 13/9              43: 13/9 24/21              
     //  8) 53: 24/21 13/8               Doubles => 2               
@@ -318,11 +320,12 @@
     jsboard.mat.parser = {};
 
     jsboard.mat.parser.action = function(t){
+      //debug('jsboard.mat.parser.action', t.slice(0,50));
       if (t != ''){
         var move = '';
         var cube = '';
         var resign = '';
-        move = (t.match(mat.action.move)||{0:''})[0];
+        move = (t.match(jsboard.mat.re.action.move)||{0:''})[0];
         if (move != ''){
           debug(move);
           return {
@@ -331,7 +334,7 @@
             'move': (move.match(jsboard.movelist.re.move)|| {0:''})[0],
           };
         };
-        cube = (t.match(mat.action.cube)||{0:''})[0];
+        cube = (t.match(jsboard.mat.re.action.cube)||{0:''})[0];
         if (cube != ''){
           return {
             'cube': cube,
@@ -344,12 +347,14 @@
 
     jsboard.mat.parser.moves = function (t){
       var r = {};
-      var lines = t.match(mat.action.line);
+      var lines = t.match(jsboard.mat.re.action.line);
+      debug('jsboard.mat.parser.moves', t.slice(0,50));
       for (n in lines){
         var current_move = {};
         var k = lines[n];
         var nth = parseInt(k.slice(0,3));
-        var pair = k.match(mat.action.action)
+        var pair = k.match(jsboard.mat.re.action.action)
+        debug('jsboard.mat.paser.moves...', pair);
         current_move[0] = jsboard.mat.parser.action(pair[0]);
         current_move[1] = jsboard.mat.parser.action(pair[1]);
         current_move.nth = nth;
@@ -360,12 +365,12 @@
 
     jsboard.mat.parser.headers = function (t){
       var r = {};
-      var xs = t.match(mat.file.header);
       var i;
-      debug('matHeader', xs);
+      var xs = t.match(jsboard.mat.re.file.header);
+      debug('jsboard.mat.parser.headers', xs);
       for (i in xs){
-        var n = xs[i].match(mat.file.headername)[0];
-        var v = xs[i].match(mat.file.headervalue)[0];
+        var n = xs[i].match(jsboard.mat.re.file.headername)[0];
+        var v = xs[i].match(jsboard.mat.re.file.headervalue)[0];
         v = v.slice(1, -1);
         debug(n, v);
         r[n] = v;
@@ -377,26 +382,31 @@
       var matchnavi = {};
       var xs;
       var i;
+      debug('jsboard.mat.parser.file', t.slice(0,50));
       matchnavi.headers = jsboard.mat.parser.headers(t);
-      matchnavi.match_length = parseInt(t.match(mat.match.header)[0]);
+      matchnavi.match_length = parseInt(t.match(jsboard.mat.re.match.header)[0]);
       matchnavi.games = {};
-      xs = t.match(mat.game.game);
+      xs = t.match(jsboard.mat.re.game.game);
+      debug(xs);
       for (i in xs){
-        var h = (xs[i].match(mat.game.header))[0];
-        var p = h.match(mat.game.player);
+        var h = (xs[i].match(jsboard.mat.re.game.header))[0];
+        var p = h.match(jsboard.mat.re.game.player);
         var score = {};
+        var n;
         score[0]=  parseInt(p[0].match('\\d+$'));
         score[1]=  parseInt(p[1].match('\\d+$'));
-        n = h.match(mat.game.nth)[0];
+        n = h.match(jsboard.mat.re.game.nth)[0];
+        debug(n);
         matchnavi.games[i] = {
           name: n,
           match_length: matchnavi.match_length,
           nth: parseInt(n.slice(6)),
           moves: jsboard.mat.parser.moves(xs[i]),
-          score: score
+          'score': score
         };
         debug(matchnavi.games[i]);
       };
+      debug('jsboard.mat.parser.file .. done');
       return matchnavi;
     };
   })();
@@ -426,6 +436,7 @@
           self.on_action = 1;
           self.cube_action = true;
         };
+        debug('gameCursor:bind... ajax', self);
         $.ajax({
           url: jsboard.config.move_api_url,
           dataType : "jsonp",
@@ -439,6 +450,7 @@
                     + String(self.game.match_length))
           }, 
           success : function(data, dataType){
+            debug('gameCursor:bind... ajax success', self);
             self.gnubgid = data.gnubgid; //ugh!
             after();
           }
@@ -579,7 +591,9 @@
     w = img.attr('width');
     h = img.attr('height');
 
+    debug('pre bind');
     cursor.bind(jsboard.mat.parser.file(text), function(){
+      debug('bind');
       img.attr('src', jsboard.fn.imageURL(cursor.gnubgid, h, w, jsboard.config.style));
     }, function(){
       cursor.next(); // forcing very first to be loaded
