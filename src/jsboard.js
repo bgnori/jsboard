@@ -148,8 +148,8 @@
     var MoveListingPattern = MoveHeaderPattern + jsboard.pattern.Line + '?' + '(?:' + MoveDataPattern + jsboard.pattern.Line +'?'+ ')*';
     var MoveHeaderOrDataPattern = MoveHeaderPattern + '|' + MoveDataPattern ;
 
-    jsboard.movelist.patterns = {
-      //putting patterns in name space gives so little.
+    jsboard.movelist.pattern = {
+      //putting pattern in name space gives so little.
       'move': movePattern, //Ugh!
     };
 
@@ -164,6 +164,62 @@
       list: new RegExp(MoveListingPattern, 'g'),
       data: new RegExp(MoveHeaderOrDataPattern, 'g'),
     };
+
+    jsboard.movelist.create = function(r, mv, odd){
+      function reformatMove(mv){
+        return mv.match(jsboard.movelist.re.data).join('\n');
+      };
+      debug('moveList', mv);
+      var m = mv.match(jsboard.movelist.re.move);
+      debug(m);
+      if (odd){
+        r.append($('<div class="movelist-odd-row" alt="' + m
+                    + '"><pre>' + reformatMove(mv) + '</pre></div>'));
+      }else{
+        r.append($('<div class="movelist-even-row" alt="' + m
+                    + '"><pre>' + reformatMove(mv) + '</pre></div>'));
+      };
+    
+      var img = r.find("img");
+      var href = img.attr('href');
+      var alt = img.attr('alt');
+    
+      $.ajax({
+        url: jsboard.config.move_api_url,
+        dataType : "jsonp",
+        cache : false,
+        data : {'move' : m[0], gnubgid : alt},
+        success : function (data, dataType){
+          // already image has loaded so, use attr
+          var w = img.attr('width');
+          var h = img.attr('height');
+          //debug(w);
+          //debug(h);
+    
+          var a = r.find('[alt="' + m + '"]');
+          a.hover(
+            function over(){
+              if (odd){
+                a.attr('class', 'movelist-odd-row-hover');
+              }else{
+                a.attr('class', 'movelist-even-row-hover');
+              }
+              img.attr('src', jsboard.fn.imageURL(data.gnubgid, h, w, jsboard.config.style));
+            },
+            function out(){
+              if (odd){
+                a.attr('class', 'movelist-odd-row');
+              }else{
+                a.attr('class', 'movelist-even-row');
+              }
+              img.attr('src', jsboard.fn.imageURL(alt, h, w, jsboard.config.style));
+            });
+          },
+        error : function(){
+          alert("error");
+        }
+      });
+    };
   })();
 
 
@@ -174,8 +230,8 @@
    */
   (function(){
     jsboard.mat = {};
-    jsboard.mat.patterns = {
-      //putting patterns in name space gives so little.
+    jsboard.mat.pattern = {
+      //Ugh!
     };
 /*
 ; [Site "eXtreme Gammon"]
@@ -223,7 +279,7 @@
                               + matPlayerNameWithScorePattern
                               + matPlayerNameWithScorePattern
                               + jsboard.pattern.Line + '?' + ')';
-    var matMovePattern = '(?:[1-6][1-6]:(?: ' + jsboard.movelist.patterns.move+ ')* *)';
+    var matMovePattern = '(?:[1-6][1-6]:(?: ' + jsboard.movelist.pattern.move+ ')* *)';
     var matCubePattern = '(?: (Takes *)|(Doubles => \\d+ *)|(Drops *))'
     var matResignPattern = '(?:( [?]{3} *))';
     var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + '|(?: )+)';
@@ -258,152 +314,96 @@
       }
     };
 
+
+    jsboard.mat.parser = {};
+
+    jsboard.mat.parser.action = function(t){
+      if (t != ''){
+        var move = '';
+        var cube = '';
+        var resign = '';
+        move = (t.match(mat.action.move)||{0:''})[0];
+        if (move != ''){
+          debug(move);
+          return {
+            'cube': 0,
+            dice: move.slice(0, 2), 
+            'move': (move.match(jsboard.movelist.re.move)|| {0:''})[0],
+          };
+        };
+        cube = (t.match(mat.action.cube)||{0:''})[0];
+        if (cube != ''){
+          return {
+            'cube': cube,
+          };
+        };
+      }else{
+        return {};
+      };
+    };
+
+    jsboard.mat.parser.moves = function (t){
+      var r = {};
+      var lines = t.match(mat.action.line);
+      for (n in lines){
+        var current_move = {};
+        var k = lines[n];
+        var nth = parseInt(k.slice(0,3));
+        var pair = k.match(mat.action.action)
+        current_move[0] = jsboard.mat.parser.action(pair[0]);
+        current_move[1] = jsboard.mat.parser.action(pair[1]);
+        current_move.nth = nth;
+        r[n] = current_move;
+      };
+      return r;
+    };
+
+    jsboard.mat.parser.headers = function (t){
+      var r = {};
+      var xs = t.match(mat.file.header);
+      var i;
+      debug('matHeader', xs);
+      for (i in xs){
+        var n = xs[i].match(mat.file.headername)[0];
+        var v = xs[i].match(mat.file.headervalue)[0];
+        v = v.slice(1, -1);
+        debug(n, v);
+        r[n] = v;
+      };
+      return r;
+    };
+
+    jsboard.mat.parser.file = function (t){
+      var matchnavi = {};
+      var xs;
+      var i;
+      matchnavi.headers = jsboard.mat.parser.headers(t);
+      matchnavi.match_length = parseInt(t.match(mat.match.header)[0]);
+      matchnavi.games = {};
+      xs = t.match(mat.game.game);
+      for (i in xs){
+        var h = (xs[i].match(mat.game.header))[0];
+        var p = h.match(mat.game.player);
+        var score = {};
+        score[0]=  parseInt(p[0].match('\\d+$'));
+        score[1]=  parseInt(p[1].match('\\d+$'));
+        n = h.match(mat.game.nth)[0];
+        matchnavi.games[i] = {
+          name: n,
+          match_length: matchnavi.match_length,
+          nth: parseInt(n.slice(6)),
+          moves: jsboard.mat.parser.moves(xs[i]),
+          score: score
+        };
+        debug(matchnavi.games[i]);
+      };
+      return matchnavi;
+    };
   })();
-  
 
 
 
-  function moveList(r, mv, odd){
-    function reformatMove(mv){
-      return mv.match(jsboard.movelist.re.data).join('\n');
-    };
-    debug('moveList', mv);
-    var m = mv.match(jsboard.movelist.re.move);
-    debug(m);
-    if (odd){
-      r.append($('<div class="movelist-odd-row" alt="' + m
-                  + '"><pre>' + reformatMove(mv) + '</pre></div>'));
-    }else{
-      r.append($('<div class="movelist-even-row" alt="' + m
-                  + '"><pre>' + reformatMove(mv) + '</pre></div>'));
-    };
-  
-    var img = r.find("img");
-    var href = img.attr('href');
-    var alt = img.attr('alt');
-  
-    $.ajax({
-      url: jsboard.config.move_api_url,
-      dataType : "jsonp",
-      cache : false,
-      data : {'move' : m[0], gnubgid : alt},
-      success : function (data, dataType){
-        // already image has loaded so, use attr
-        var w = img.attr('width');
-        var h = img.attr('height');
-        //debug(w);
-        //debug(h);
-  
-        var a = r.find('[alt="' + m + '"]');
-        a.hover(
-          function over(){
-            if (odd){
-              a.attr('class', 'movelist-odd-row-hover');
-            }else{
-              a.attr('class', 'movelist-even-row-hover');
-            }
-            img.attr('src', jsboard.fn.imageURL(data.gnubgid, h, w, jsboard.config.style));
-          },
-          function out(){
-            if (odd){
-              a.attr('class', 'movelist-odd-row');
-            }else{
-              a.attr('class', 'movelist-even-row');
-            }
-            img.attr('src', jsboard.fn.imageURL(alt, h, w, jsboard.config.style));
-          });
-        },
-      error : function(){
-        alert("error");
-      }
-    });
-  };
-  
-
-  function matAction(t){
-    if (t != ''){
-      var move = '';
-      var cube = '';
-      var resign = '';
-      move = (t.match(mat.action.move)||{0:''})[0];
-      if (move != ''){
-        debug(move);
-        return {
-          'cube': 0,
-          dice: move.slice(0, 2), 
-          'move': (move.match(jsboard.movelist.re.move)|| {0:''})[0],
-        };
-      };
-      cube = (t.match(mat.action.cube)||{0:''})[0];
-      if (cube != ''){
-        return {
-          'cube': cube,
-        };
-      };
-    }else{
-      return {};
-    };
-  };
-
-  function matMoves(t){
-    var r = {};
-    var lines = t.match(mat.action.line);
-    for (n in lines){
-      var current_move = {};
-      var k = lines[n];
-      var nth = parseInt(k.slice(0,3));
-      var pair = k.match(mat.action.action)
-      current_move[0] = matAction(pair[0]);
-      current_move[1] = matAction(pair[1]);
-      current_move.nth = nth;
-      r[n] = current_move;
-    };
-    return r;
-  };
-
-  function matHeader(xs){
-    var r = {};
-    debug('matHeader', xs);
-    var i;
-    for (i in xs){
-      var n = xs[i].match(mat.file.headername)[0];
-      var v = xs[i].match(mat.file.headervalue)[0];
-      v = v.slice(1, -1);
-      debug(n, v);
-      r[n] = v;
-    };
-    return r;
-  };
-
-  function matFile(t){
-    var matchnavi = {};
-    var xs;
-    var i;
-    matchnavi.headers = matHeader(t.match(mat.file.header));
-    matchnavi.match_length = parseInt(t.match(mat.match.header)[0]);
-    matchnavi.games = {};
-    xs = t.match(mat.game.game);
-    for (i in xs){
-      var h = (xs[i].match(mat.game.header))[0];
-      var p = h.match(mat.game.player);
-      var score = {};
-      score[0]=  parseInt(p[0].match('\\d+$'));
-      score[1]=  parseInt(p[1].match('\\d+$'));
-      n = h.match(mat.game.nth)[0];
-      matchnavi.games[i] = {
-        name: n,
-        match_length: matchnavi.match_length,
-        nth: parseInt(n.slice(6)),
-        moves: matMoves(xs[i]),
-        score: score
-      };
-      debug(matchnavi.games[i]);
-    };
-    return matchnavi;
-  };
-
-
-  function matGameCursor(){
+  function gameCursor(){
     return {
       nth: null,
       on_action: null,
@@ -414,7 +414,7 @@
       on_success: null,
       bind: function(game, on_success, after){
         var self = this; //ugh!
-        debug('matGameCursor:bind', self);
+        debug('gameCursor:bind', self);
         self.on_success = on_success;
         self.game = game;
         if (self.game.moves[0][0].dice){
@@ -447,7 +447,7 @@
       },
       read: function(){
         var self = this; //ugh!
-        debug('matGameCursor:read', self);
+        debug('gameCursor:read', self);
         var current_move = self.game.moves[self.nth][self.on_action];
         debug(current_move, self.nth, self.on_action);
         if (self.cube_action){
@@ -469,15 +469,15 @@
       isDone: function(){
         var self = this; // ugh!
         if (typeof(self.game.moves[self.nth]) == 'undefined'){
-          debug('matGameCursor:isDone true', self);
+          debug('gameCursor:isDone true', self);
           return true;
         };
-        debug('matGameCursor:isDone false', self);
+        debug('gameCursor:isDone false', self);
         return false;
       },
       next: function(){
         var self = this; // ugh!
-        debug('matGameCursor:next', self);
+        debug('gameCursor:next', self);
 
         $.ajax({
           url: jsboard.config.move_api_url,
@@ -513,7 +513,7 @@
     };
   };
 
-  function matMatchCursor(){
+  function matchCursor(){
     return {
       matchnavi: null,
       current: null,
@@ -522,8 +522,8 @@
       gnubgid: '',
       subbind: function(after){
         var self = this;
-        debug('matMatchCursor:subbind', self);
-        self.current = matGameCursor();
+        debug('matchCursor:subbind', self);
+        self.current = gameCursor();
         self.current.bind(self.matchnavi.games[self.nth], function(){
           self.gnubgid = self.current.gnubgid;
           self.on_success();
@@ -532,7 +532,7 @@
       },
       bind: function(matchnavi, on_success, after){
         var self = this;
-        debug('matMatchCursor:bind', self);
+        debug('matchCursor:bind', self);
         self.matchnavi = matchnavi;
         self.on_success = on_success;
         self.nth = 0;
@@ -540,12 +540,12 @@
         return self;
       },
       isDone: function(){
-        debug('matMatchCursor:isDone', self);
+        debug('matchCursor:isDone', self);
         return false;
       },
       next: function(){
         var self = this;
-        debug('matMatchCursor:next', self);
+        debug('matchCursor:next', self);
         if (self.current.isDone()){
           self.nth += 1;
           if (self.matchnavi.games[self.nth] == undefined){
@@ -572,14 +572,14 @@
     var w;
     var root = $(this);
     var text = root.text();
-    var cursor = matMatchCursor();
+    var cursor = matchCursor();
     
     jsboard.fn.image(root, '', jsboard.config.style, '#matviewer');
     img = root.find("img");
     w = img.attr('width');
     h = img.attr('height');
 
-    cursor.bind(matFile(text), function(){
+    cursor.bind(jsboard.mat.parser.file(text), function(){
       img.attr('src', jsboard.fn.imageURL(cursor.gnubgid, h, w, jsboard.config.style));
     }, function(){
       cursor.next(); // forcing very first to be loaded
@@ -607,7 +607,7 @@
     var mv;
     for (n in  mvlist){
       mv = mvlist[n];
-      moveList(root, mv, n%2);
+      jsboard.moveList.create(root, mv, n%2);
     };
   };
 
@@ -618,7 +618,7 @@
     jsboard.fn.area(map, "yourbar", "rect", "133,116,158,228", "yourbar");
   };
 
-  function editor(n){
+  jsboard.fn.editor = function(n){
   };
 
 

@@ -45,11 +45,11 @@ describe('jsboard', {
 	},
 
 	'正規表現 基本': function() {
-    value_of(Boolean(jsboard.pattern)).should_be(true);
+    value_of(jsboard).should_include('pattern');
     value_of(jsboard.pattern.Line).should_be('(?:\\r\\n|\\n|\\r)');
-    value_of(Boolean(jsboard.gnubg.re)).should_be(true);
-    value_of(Boolean(jsboard.movelist.re)).should_be(true);
-    value_of(Boolean(jsboard.mat.re)).should_be(true);
+    value_of(jsboard.gnubg).should_include('re');
+    value_of(jsboard.movelist).should_include('re');
+    value_of(jsboard.mat).should_include('re');
   },
 
 	'正規表現 gnubg関係': function() {
