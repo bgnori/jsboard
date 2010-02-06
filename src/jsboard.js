@@ -283,8 +283,8 @@
     var matMovePattern = '(?:[1-6][1-6]:(?: ' + jsboard.movelist.pattern.move + ')* *)';
     var matCubePattern = '(?: (Takes *)|(Doubles => \\d+ *)|(Drops *))'
     var matResignPattern = '(?:( [?]{3} *))';
-    var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + ')';
-    //'|(?: )+)';
+    //var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + ')';
+    var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + '|(?: ){28})';
     var matLinePattern = '(?:[1-9 ][0-9 ][0-9]\\) ' + matActionPattern + matActionPattern + ')';
     //  1) 41: 24/23 13/9              43: 13/9 24/21              
     //  8) 53: 24/21 13/8               Doubles => 2               
