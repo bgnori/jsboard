@@ -949,6 +949,35 @@ todo
 ちょっと気分を変えてJSSpec runnerをBPStudy tddでためす。
 
 
+試してみた。まあいんじゃないでしょうか。
+
+ただ非同期のテストが全くできない。
+
+qunitはできるらしい。
+
+UxUもできるがGecko専用
+ただcommandlineから使うことができる。
+
+
+cross browserを指向しているのでqunitでいく。
+stop/startってなに？
+
+
+from  http://dev.chrisryu.com/2008/06/qunit.html
+start( ) : テストを再開します。
+
+stop( ) :
+テストを中断します。Ajaxで非同期通信等のテストを行うとき、非同期処理前にstop()でテストを止め、非同期処理終了時のコールバック関数内で
+start()を実行して、テストを再開します。
+
+blogに書いた。
+
+
+nextの中にstop/startを書き加えればいいのでは？
+その必要もないようだ。ただ、JSDeferredに強烈に依存してしまうだろう。
+unittestする対象がDeferredを返すようにしないとテストできないかもしれない。
+
+
 
 
 

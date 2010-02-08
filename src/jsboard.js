@@ -170,7 +170,7 @@
       function reformatMove(mv){
         return mv.match(jsboard.movelist.re.data).join('\n');
       };
-      debug('moveList', mv);
+      debug('jsboard.movelist.create', mv);
       var m = mv.match(jsboard.movelist.re.move);
       debug(m);
       if (odd){
@@ -621,7 +621,7 @@
     var mv;
     for (n in  mvlist){
       mv = mvlist[n];
-      jsboard.moveList.create(root, mv, n%2);
+      jsboard.movelist.create(root, mv, n%2);
     };
   };
 
