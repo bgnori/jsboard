@@ -999,5 +999,5 @@ JSSpec.CompositeExecutor.prototype.run = function() {
 に手をいれればよいのではないだろうか？
 かなり迷走気味だが。
 
-
+おとなしく、QUnitに移行しよう
 
