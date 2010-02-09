@@ -977,7 +977,27 @@ nextの中にstop/startを書き加えればいいのでは？
 その必要もないようだ。ただ、JSDeferredに強烈に依存してしまうだろう。
 unittestする対象がDeferredを返すようにしないとテストできないかもしれない。
 
+JSSpecのスタイルをQunitにもってこれないか？jQSpec
 
+
+setup/teardownとstop/startの関係。
+- setup/teardownはqueueには入らないであろう。
+
+
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+大事。JavaScript側ではencodingを指定できない(単に挿入されるだけだから)のでhtmlで指定する。
+
+
+
+
+JSSpec.CompositeExecutor.prototype.run = function() {
+	if(this.queue.length > 0) {
+		this.queue[0].run();
+	}
+};
+
+に手をいれればよいのではないだろうか？
+かなり迷走気味だが。
 
 
 

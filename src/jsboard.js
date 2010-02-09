@@ -4,14 +4,16 @@
 */
 
 
-(function ($, jsboard){
+(function ($){
   function debug(){
     if (window['console']){
       console.log.apply(null, arguments);
     };
   };
 
-  jsboard = jsboard || {};
+  if (typeof(jsboard) == 'undefined'){
+    jsboard = {};
+  };
   var default_conf = {
       style: "nature",
       delay: 50,
@@ -668,6 +670,6 @@
       debug('css load failed: '+ jsboard.config.css);
     }); 
   });
-})(jQuery, jsboard);
+})(jQuery);
 
 
