@@ -43,4 +43,10 @@ Subject.prototype.should_not_match = function (re, message){
   ok(!Boolean(this.target.match(re)), message);
 };
 
+Subject.prototype.should_recursivly_be = function (expected, message){
+  same(this.target, expected, message);
+};
+
+
+
 
