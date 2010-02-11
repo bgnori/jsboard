@@ -254,10 +254,10 @@
           '(?:' 
         +   'Site|'
         +   'Match ID|'
-        +   'Player 1|'
-        +   'Player 2|'
         +   'Player 1 Elo|'
         +   'Player 2 Elo|'
+        +   'Player 1|'
+        +   'Player 2|'
         +   'EventDate|'
         +   'EventTime|'
         +   'Variation|'
@@ -282,8 +282,8 @@
                               + matPlayerNameWithScorePattern
                               + matPlayerNameWithScorePattern
                               + jsboard.pattern.Line + '?' + ')';
-    var matMovePattern = '(?:[1-6][1-6]:(?: ' + jsboard.movelist.pattern.move + ')* *)';
-    var matCubePattern = '(?: (Takes *)|(Doubles => \\d+ *)|(Drops *))'
+    var matMovePattern = '(?:[1-6][1-6]:(?: ' + jsboard.movelist.pattern.move + ')* +)';
+    var matCubePattern = '( (?:(?:Takes {21})|(?:Doubles => \\d[0-9 ]{14})|(?:Drops {21})))'
     var matResignPattern = '(?:( [?]{3} *))';
     //var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + ')';
     var matActionPattern = '(?:'+ matMovePattern + '|' + matCubePattern + '|(?: ){28})';
@@ -322,12 +322,18 @@
     jsboard.mat.parser = {};
 
     jsboard.mat.parser.action = function(t){
-      //debug('jsboard.mat.parser.action', t.slice(0,50));
-      if (t != ''){
+      //if (((typeof t) != 'undefined') && (t != null) && (t != '')){
+      if (typeof t == 'string'){
         var move = '';
         var cube = '';
         var resign = '';
-        move = (t.match(jsboard.mat.re.action.move)||{0:''})[0];
+        var m = t.match(jsboard.mat.re.action.move);
+        if ((m=== null) || (typeof m == 'undefined') ){
+          move = '';
+        }else{
+          debug(m);
+          move = m[0];//(t.match(jsboard.mat.re.action.move)||{0:''})[0];
+        };
         if (move != ''){
           debug(move);
           return {
@@ -415,7 +421,7 @@
 
 
 
-  function gameCursor(){
+  jsboard.gameCursor = function (){
     return {
       nth: null,
       on_action: null,
@@ -424,12 +430,12 @@
       current_move: null,
       game: null,
       on_success: null,
-      bind: function(game, on_success, after){
+      bind: function(game, on_success){
         var self = this; //ugh!
         debug('gameCursor:bind', self);
         self.on_success = on_success;
         self.game = game;
-        if (self.game.moves[0][0].dice){
+        if (self.game.moves[0][0] && self.game.moves[0][0].dice){
           self.nth = 0;
           self.on_action = 0;
           self.cube_action = true;
@@ -439,7 +445,7 @@
           self.cube_action = true;
         };
         debug('gameCursor:bind... ajax', self);
-        $.ajax({
+        return $.ajax({
           url: jsboard.config.move_api_url,
           dataType : "jsonp",
           cache : false,
@@ -454,10 +460,8 @@
           success : function(data, dataType){
             debug('gameCursor:bind... ajax success', self);
             self.gnubgid = data.gnubgid; //ugh!
-            after();
           }
         });
-        return self;
       },
       read: function(){
         var self = this; //ugh!

@@ -1001,3 +1001,7 @@ JSSpec.CompositeExecutor.prototype.run = function() {
 
 おとなしく、QUnitに移行しよう
 
+
+http://edspencer.github.com/jaml/
+
+
