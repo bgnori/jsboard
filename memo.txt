@@ -1004,4 +1004,15 @@ JSSpec.CompositeExecutor.prototype.run = function() {
 
 http://edspencer.github.com/jaml/
 
+loopの仕様を誤解していた。
+
+cursor.nextがisDone時に呼ばれると何かおかしい。
+c.next()に関連してstart/stopできていない。
+ aspectなhookでstart/stopをnextに挿入したい。
+
+試してみたが、どうも何かが足りない。
+okの結果が格納されない。
+
+
+
 

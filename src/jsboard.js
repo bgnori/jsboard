@@ -11,6 +11,12 @@
     };
   };
 
+  function dump(){
+    if (window['console'] && jsboard.config.verbose){
+      console.log.apply(null, arguments);
+    };
+  };
+
   if (typeof(jsboard) == 'undefined'){
     jsboard = {};
   };
@@ -27,7 +33,7 @@
 
   jsboard.fn = {};
   jsboard.fn.imageURL = function (gnubgid, height, width, css){
-    debug('jsboard.fn.imageURL', gnubgid, height, width, css);
+    dump('jsboard.fn.imageURL', gnubgid, height, width, css);
     return 'http://image.backgammonbase.com/image?' + 
       'gnubgid=' +  encodeURIComponent(gnubgid) + 
       '&height='+height +
@@ -38,7 +44,7 @@
 
   jsboard.fn.image = function(p, gnubgid, css, usemap){
     var img;
-    debug('jsboard.fn.image', p, gnubgid, css);
+    dump('jsboard.fn.image', p, gnubgid, css);
     img = p.find('[class="jsboard-image"]');
     if (img.length == 0){
       // There is nothing.
@@ -172,9 +178,9 @@
       function reformatMove(mv){
         return mv.match(jsboard.movelist.re.data).join('\n');
       };
-      debug('jsboard.movelist.create', mv);
+      dump('jsboard.movelist.create', mv);
       var m = mv.match(jsboard.movelist.re.move);
-      debug(m);
+      dump(m);
       if (odd){
         r.append($('<div class="movelist-odd-row" alt="' + m
                     + '"><pre>' + reformatMove(mv) + '</pre></div>'));
@@ -331,11 +337,11 @@
         if ((m=== null) || (typeof m == 'undefined') ){
           move = '';
         }else{
-          debug(m);
+          dump(m);
           move = m[0];//(t.match(jsboard.mat.re.action.move)||{0:''})[0];
         };
         if (move != ''){
-          debug(move);
+          dump(move);
           return {
             'cube': 0,
             dice: move.slice(0, 2), 
@@ -356,13 +362,13 @@
     jsboard.mat.parser.moves = function (t){
       var r = {};
       var lines = t.match(jsboard.mat.re.action.line);
-      debug('jsboard.mat.parser.moves', t.slice(0,50));
+      dump('jsboard.mat.parser.moves', t.slice(0,50));
       for (n in lines){
         var current_move = {};
         var k = lines[n];
         var nth = parseInt(k.slice(0,3));
         var pair = k.match(jsboard.mat.re.action.action)
-        debug('jsboard.mat.paser.moves...', pair);
+        dump('jsboard.mat.paser.moves...', pair);
         current_move[0] = jsboard.mat.parser.action(pair[0]);
         current_move[1] = jsboard.mat.parser.action(pair[1]);
         current_move.nth = nth;
@@ -375,12 +381,12 @@
       var r = {};
       var i;
       var xs = t.match(jsboard.mat.re.file.header);
-      debug('jsboard.mat.parser.headers', xs);
+      dump('jsboard.mat.parser.headers', xs);
       for (i in xs){
         var n = xs[i].match(jsboard.mat.re.file.headername)[0];
         var v = xs[i].match(jsboard.mat.re.file.headervalue)[0];
         v = v.slice(1, -1);
-        debug(n, v);
+        dump(n, v);
         r[n] = v;
       };
       return r;
@@ -390,12 +396,12 @@
       var matchnavi = {};
       var xs;
       var i;
-      debug('jsboard.mat.parser.file', t.slice(0,50));
+      dump('jsboard.mat.parser.file', t.slice(0,50));
       matchnavi.headers = jsboard.mat.parser.headers(t);
       matchnavi.match_length = parseInt(t.match(jsboard.mat.re.match.header)[0]);
       matchnavi.games = {};
       xs = t.match(jsboard.mat.re.game.game);
-      debug(xs);
+      dump(xs);
       for (i in xs){
         var h = (xs[i].match(jsboard.mat.re.game.header))[0];
         var p = h.match(jsboard.mat.re.game.player);
@@ -404,7 +410,7 @@
         score[0]=  parseInt(p[0].match('\\d+$'));
         score[1]=  parseInt(p[1].match('\\d+$'));
         n = h.match(jsboard.mat.re.game.nth)[0];
-        debug(n);
+        dump(n);
         matchnavi.games[i] = {
           name: n,
           match_length: matchnavi.match_length,
@@ -412,13 +418,12 @@
           moves: jsboard.mat.parser.moves(xs[i]),
           'score': score
         };
-        debug(matchnavi.games[i]);
+        dump(matchnavi.games[i]);
       };
-      debug('jsboard.mat.parser.file .. done');
+      dump('jsboard.mat.parser.file .. done');
       return matchnavi;
     };
   })();
-
 
 
   jsboard.gameCursor = function (){
@@ -432,7 +437,7 @@
       on_success: null,
       bind: function(game, on_success){
         var self = this; //ugh!
-        debug('gameCursor:bind', self);
+        dump('gameCursor:bind', self);
         self.on_success = on_success;
         self.game = game;
         if (self.game.moves[0][0] && self.game.moves[0][0].dice){
@@ -444,7 +449,7 @@
           self.on_action = 1;
           self.cube_action = true;
         };
-        debug('gameCursor:bind... ajax', self);
+        dump('gameCursor:bind... ajax', self);
         return $.ajax({
           url: jsboard.config.move_api_url,
           dataType : "jsonp",
@@ -458,16 +463,16 @@
                     + String(self.game.match_length))
           }, 
           success : function(data, dataType){
-            debug('gameCursor:bind... ajax success', self);
+            dump('gameCursor:bind... ajax success', self);
             self.gnubgid = data.gnubgid; //ugh!
           }
         });
       },
       read: function(){
         var self = this; //ugh!
-        debug('gameCursor:read', self);
+        dump('gameCursor:read', self);
         var current_move = self.game.moves[self.nth][self.on_action];
-        debug(current_move, self.nth, self.on_action);
+        dump(current_move, self.nth, self.on_action);
         if (self.cube_action){
           data = {
             'cube' : 'no double',
@@ -487,17 +492,17 @@
       isDone: function(){
         var self = this; // ugh!
         if (typeof(self.game.moves[self.nth]) == 'undefined'){
-          debug('gameCursor:isDone true', self);
+          dump('gameCursor:isDone true', self);
           return true;
         };
-        debug('gameCursor:isDone false', self);
+        dump('gameCursor:isDone false', self);
         return false;
       },
       next: function(){
         var self = this; // ugh!
-        debug('gameCursor:next', self);
+        dump('gameCursor:next', self);
 
-        $.ajax({
+        return $.ajax({
           url: jsboard.config.move_api_url,
           dataType : "jsonp",
           cache : false,
@@ -540,7 +545,7 @@
       gnubgid: '',
       subbind: function(after){
         var self = this;
-        debug('matchCursor:subbind', self);
+        dump('matchCursor:subbind', self);
         self.current = gameCursor();
         self.current.bind(self.matchnavi.games[self.nth], function(){
           self.gnubgid = self.current.gnubgid;
@@ -550,7 +555,7 @@
       },
       bind: function(matchnavi, on_success, after){
         var self = this;
-        debug('matchCursor:bind', self);
+        dump('matchCursor:bind', self);
         self.matchnavi = matchnavi;
         self.on_success = on_success;
         self.nth = 0;
@@ -558,16 +563,16 @@
         return self;
       },
       isDone: function(){
-        debug('matchCursor:isDone', self);
+        dump('matchCursor:isDone', self);
         return false;
       },
       next: function(){
         var self = this;
-        debug('matchCursor:next', self);
+        dump('matchCursor:next', self);
         if (self.current.isDone()){
           self.nth += 1;
           if (self.matchnavi.games[self.nth] == undefined){
-            debug('end of match');
+            dump('end of match');
           }else{
             self.subbind(function(){
               //after
@@ -584,7 +589,7 @@
   };
 
   jsboard.fn.matviewer = function (n){
-    debug("jsboard.fn.matviewer processing", n);
+    dump("jsboard.fn.matviewer processing", n);
     var img;
     var h;
     var w;
@@ -597,9 +602,9 @@
     w = img.attr('width');
     h = img.attr('height');
 
-    debug('pre bind');
+    dump('pre bind');
     cursor.bind(jsboard.mat.parser.file(text), function(){
-      debug('bind');
+      dump('bind');
       img.attr('src', jsboard.fn.imageURL(cursor.gnubgid, h, w, jsboard.config.style));
     }, function(){
       cursor.next(); // forcing very first to be loaded
@@ -611,7 +616,7 @@
 
 
   jsboard.fn.board = function(n){
-    debug("jsboard.fn.board processing", n);
+    dump("jsboard.fn.board processing", n);
     var id_str =  'jsboard'+n;
     var root = $(this);
     var text = root.text();
@@ -643,13 +648,13 @@
 
 
   jsboard.fn.loadCSS = function (src, delay, onload, error){
-    debug('loadCSS', src);
+    dump('loadCSS', src);
     $.ajax({
       type: "GET",
       url: src,
       dataType: 'text',
       success: function(data, dataType){
-        debug('inserting ' + src);
+        dump('inserting ' + src);
         var link = $('<link rel="stylesheet" type="text/css" href="'+ src+ '" />');
         $("head").append(link);
         setTimeout(function(){
@@ -662,16 +667,16 @@
   };
 
   // entry point
-  debug(jsboard.config.css);
+  dump(jsboard.config.css);
   $(document).ready(function(){
     jsboard.fn.loadCSS(jsboard.config.css, jsboard.config.delay, 
     function(){
-      debug('processing.');
+      dump('processing.');
       $('.jsboard').each(jsboard.fn.board);
       $('.jsmatviewer').each(jsboard.fn.matviewer);
     }, 
     function (XMLHttpRequest, testStatus, errorThrown){
-      debug('css load failed: '+ jsboard.config.css);
+      dump('css load failed: '+ jsboard.config.css);
     }); 
   });
 })(jQuery);

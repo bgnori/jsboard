@@ -327,8 +327,8 @@ example('mat ファイル parser.headers', function(){
   };
   var actual;
   actual = jsboard.mat.parser.headers(xs);
-  debug(actual);
-  debug(expected);
+  //debug(actual);
+  //debug(expected);
   value_of(actual).should_recursivly_be(expected);
            
 });
@@ -404,29 +404,41 @@ example('game cursor', function(){
       }
     }
   }};
-  AJAXTIMEOUT = 100;
-  stop(AJAXTIMEOUT);
   var c = jsboard.gameCursor();
-  c.bind(g, function(){})
+  var count = 0;
+  stop(AJAXTIMEOUT);
+  debug('---');
+  c.bind(g, function(){}) //bind returns Deferred object.
   .next(function(){
-    start();
-    debug('next after bind');
     value_of(c.isDone()).should_be(false);
-    stop(AJAXTIMEOUT);
-    loop(!c.isDone(), function(){
-      start();
-      stop(AJAXTIMEOUT);
-      return c.next();
+    debug('next after bind');
+    return loop({
+        begin: 0,
+        end: 10,
+        step: 1
+      }, 
+      function(){
+        debug('loop iter', count);
+        count+=1;
+        value_of(c.isDone()).should_be(false);
+        return c.next();
+    })
+    .next(function(){
+      debug('loop done');
+      value_of(c.isDone()).should_be(true);
     });
-    start();
+  })
+  .next(function(){
+    debug('resuming test');
+    surpress_stop = true;
   });
-
 });
 
 example('match cursor', function(){
+  surpress_stop = false;
+  ok(true);
   //Ugh! add test.  
 });
-
 
 
 
