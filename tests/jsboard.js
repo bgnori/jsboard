@@ -339,7 +339,6 @@ example('mat ファイル parser.file', function(){
 
 example('game cursor', function(){
   jsboard.config.move_api_url = "http://localhost:8000/";
-  var c = jsboard.gameCursor();
   var g = {
   match_length: 5,
   score: {
@@ -405,13 +404,22 @@ example('game cursor', function(){
       }
     }
   }};
-  stop(200);
+  AJAXTIMEOUT = 100;
+  stop(AJAXTIMEOUT);
+  var c = jsboard.gameCursor();
   c.bind(g, function(){})
   .next(function(){
+    start();
     debug('next after bind');
+    value_of(c.isDone()).should_be(false);
+    stop(AJAXTIMEOUT);
+    loop(!c.isDone(), function(){
+      start();
+      stop(AJAXTIMEOUT);
+      return c.next();
+    });
     start();
   });
-
 
 });
 
