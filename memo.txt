@@ -1013,6 +1013,45 @@ c.next()に関連してstart/stopできていない。
 試してみたが、どうも何かが足りない。
 okの結果が格納されない。
 
+next.nextは大丈夫だった。
+loopがよろしくないのかもしれない。
+loopが長くなるとテストがすっ飛ばされる。どういうことだ？
+- nextをいっぱい書き連ねても大丈夫。
+- FireFox qunitは実行されるが、testの件数が毎回違う。
+- Opera テストはすべて実行されるか、qunit自体がおわらない。
+
+loopくさい。
+
+nextをnestすると現象が再現した。nestするのとloopするのは同義なので確定。nestした場合のnestを浅くしてみるのと、実行パスを読んでみる。
+
+とりあえず、JSDeferred側からでは引っかかる点がなかったのでQUnitを読んでみる。
+
+
+QUnit.test(testName, expected, callback, true);
+がコア。
+	synchronize(function() {
+
+				testEnvironment.setup.call(testEnvironment);
+        //L114
+
+				callback.call(testEnvironment);
+        //L124
+synchronizeは何をしているのだろうか？
+
+asyncTestとtestの違いは、フラグがtrueだとcallback.callの前にQUnit.stopが呼ばれる点
+
+あー。start自体がsetTimeoutを呼んでいるのでnextと仲が悪い?
+
+
+synchronizeはqueueにcallbackをプッシュする。
+function synchronize( callback ) {
+	config.queue.push( callback );
+
+	if ( config.autorun && !config.blocking ) {
+		process();
+	}
+}
+
 
 
 

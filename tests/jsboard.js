@@ -406,7 +406,7 @@ example('game cursor', function(){
   }};
   var c = jsboard.gameCursor();
   var count = 0;
-  stop(AJAXTIMEOUT);
+  stop(3000);
   debug('---');
   c.bind(g, function(){}) //bind returns Deferred object.
   .next(function(){
@@ -414,7 +414,7 @@ example('game cursor', function(){
     debug('next after bind');
     return loop({
         begin: 0,
-        end: 10,
+        end: 17,
         step: 1
       }, 
       function(){
@@ -429,8 +429,8 @@ example('game cursor', function(){
     });
   })
   .next(function(){
+    start();
     debug('resuming test');
-    surpress_stop = true;
   });
 });
 
