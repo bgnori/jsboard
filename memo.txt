@@ -1054,4 +1054,34 @@ function synchronize( callback ) {
 
 
 
+テストコードを整理しよう。だいぶぐちゃぐちゃになってきた。
+jsboardは良くない。backgammon.jsとかにするか？
+
+jsboardはjquery.backgammon.jsに改名
+blog用のエントリは別途作る。
+しばらくしたらファイルを圧縮・分割(遅延実行)ロードする
+ http://itpro.nikkeibp.co.jp/article/COLUMN/20080109/290747/
+特にmat fileのparseが遅いので対処が必要。
+
+bg.config
+bg.fn
+bg.pattern
+bg.gnubg
+bg.movelist
+bg.mat
+bg.cursor.game
+bg.cursor.match
+
+
+Jsmin
+http://www.crockford.com/javascript/jsmin.py.txt
+
+G謹製のclosure libraryなるものがある。
+http://webos-goodies.jp/archives/make_a_drawing_tool_with_closure_library.html
+http://webos-goodies.jp/archives/10_reasons_why_you_should_use_the_closure_library.html
+これできまり。
+
+Gjango Compress
+http://code.google.com/p/django-compress/
+
 
